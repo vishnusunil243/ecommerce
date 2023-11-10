@@ -3,10 +3,9 @@ package response
 import "time"
 
 type AdminData struct {
-	Id           int
-	Name         string
-	Email        string
-	IsSuperAdmin bool
+	Id    int
+	Name  string
+	Email string
 }
 type DashBoard struct {
 	TotalRevenue        int

@@ -19,28 +19,38 @@ type Product struct {
 	Created_at  time.Time
 	Updated_at  time.Time
 }
+type Brand struct {
+	Id          uint   `gorm:"primaryKey;unique;not null"`
+	Brandname   string `gorm:"unique;not null"`
+	Description string
+	Category_id uint
+	Category    Category `gorm:"foreignKey:Category_id"`
+	Created_at  time.Time
+	Updated_at  time.Time
+}
 
 type ProductItem struct {
-	Id           uint `gorm:"primaryKey;unique;not null"`
-	Product_id   uint
-	Product      Product `gorm:"foreignKey:Product_id"`
-	Sku          string  `gorm:"not null"`
-	Qty_in_stock int
-	Color        string
-	Ram          int
-	Battery      int
-	Screen_size  float64
-	Storage      int
-	Camera       int
-	Price        int
-	Imag         string
-	Created_at   time.Time
-	Updated_at   time.Time
+	Id                uint `gorm:"primaryKey;unique;not null"`
+	Product_id        uint
+	Product           Product `gorm:"foreignKey:Product_id"`
+	Sku               string  `gorm:"not null"`
+	Qty_in_stock      int
+	Color             string
+	Ram               int
+	Battery           int
+	Screen_size       float64
+	Storage           int
+	Camera            int
+	Graphic_Processor string
+	Price             int
+	Image             string
+	Created_at        time.Time
+	Updated_at        time.Time
 }
 
 type Images struct {
 	Id            uint `gorm:"primaryKey;unique;not null"`
 	ProductItemId uint
 	ProductItem   ProductItem `gorm:"foreignKey:ProductItemId"`
-	FileName      string
+	Image         []byte
 }

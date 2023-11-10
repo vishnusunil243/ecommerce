@@ -7,6 +7,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
 	"main.go/internal/common/helperStruct"
+	"main.go/internal/common/response"
 	"main.go/internal/infrastructure/config"
 	"main.go/internal/repository/interfaces"
 	services "main.go/internal/usecase/interface"
@@ -30,6 +31,9 @@ func (c *adminUsecase) AdminLogin(admin helperStruct.LoginReq) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if adminData.IsBlocked == true {
+		return "", fmt.Errorf("admin is blocked")
+	}
 	err = bcrypt.CompareHashAndPassword([]byte(adminData.Password), []byte(admin.Password))
 	fmt.Println(adminData.Password)
 	fmt.Println("hii")
@@ -49,4 +53,16 @@ func (c *adminUsecase) AdminLogin(admin helperStruct.LoginReq) (string, error) {
 
 	return ss, nil
 
+}
+
+// ListAllUsers implements interfaces.AdminUseCase.
+func (cr *adminUsecase) ListAllUsers() ([]response.UserDetails, error) {
+	users, err := cr.adminRepo.ListAllUsers()
+	return users, err
+}
+
+// DisplayUser implements interfaces.AdminUseCase.
+func (cr *adminUsecase) DisplayUser(id int) (response.UserDetails, error) {
+	user, err := cr.adminRepo.DispalyUser(id)
+	return user, err
 }

@@ -1,7 +1,10 @@
 package repository
 
 import (
+	"fmt"
+
 	"gorm.io/gorm"
+	"main.go/internal/common/response"
 	"main.go/internal/domain"
 	"main.go/internal/repository/interfaces"
 )
@@ -23,4 +26,21 @@ func (c *adminDatabase) AdminLogin(email string) (domain.Admins, error) {
 		return adminData, err
 	}
 	return adminData, nil
+}
+
+// ListAllUsers implements interfaces.AdminRepository.
+func (c *adminDatabase) ListAllUsers() ([]response.UserDetails, error) {
+	var users []response.UserDetails
+	err := c.DB.Raw(`SELECT * FROM users`).Scan(&users).Error
+	return users, err
+}
+
+// DispalyUser implements interfaces.AdminRepository.
+func (c *adminDatabase) DispalyUser(id int) (response.UserDetails, error) {
+	var user response.UserDetails
+	err := c.DB.Raw(`SELECT * FROM users WHERE id=?`, id).Scan(&user).Error
+	if user.Email == "" {
+		return user, fmt.Errorf("user not found")
+	}
+	return user, err
 }

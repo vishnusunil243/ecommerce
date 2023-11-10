@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"main.go/internal/common/helperStruct"
@@ -49,12 +50,59 @@ func (cr *AdminHandler) AdminLogin(c *gin.Context) {
 		Errors:     nil,
 	})
 }
-func AdminLogout(c *gin.Context) {
+func (cr *AdminHandler) AdminLogout(c *gin.Context) {
 	c.SetCookie("AdminAuth", "", -1, "", "", false, true)
 	c.JSON(http.StatusOK, response.Response{
 		StatusCode: 200,
 		Message:    "user logged out successfully",
 		Data:       nil,
+		Errors:     nil,
+	})
+}
+func (cr *AdminHandler) ListAllUsers(c *gin.Context) {
+	users, err := cr.adminUsecase.ListAllUsers()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error listing users",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "users listed successfully",
+		Data:       users,
+		Errors:     nil,
+	})
+}
+func (cr *AdminHandler) DisplayUser(c *gin.Context) {
+	paramId := c.Param("user_id")
+	id, err := strconv.Atoi(paramId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error parsing params",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	user, err := cr.adminUsecase.DisplayUser(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error displaying user",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "user displayed successfully",
+		Data:       user,
 		Errors:     nil,
 	})
 }
