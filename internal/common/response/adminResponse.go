@@ -20,3 +20,13 @@ type SalesReport struct {
 	OrderDate   time.Time
 	OrderTotal  int
 }
+type UserReport struct {
+	Name        string
+	ReportCount uint
+}
+type ReportInfo struct {
+	Username           string
+	ReportCount        uint
+	ReportedBY         uint
+	ReasonForReporting string
+}

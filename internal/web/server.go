@@ -33,6 +33,7 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 		{
 			user.POST("/logout", handler.UserLogout)
 		}
+		user.Use(middleware.UserIsBlocked)
 	}
 	admin := engine.Group("/admin")
 	{
@@ -42,15 +43,16 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 			admin.POST("/logout", adminHandler.AdminLogout)
 			users := admin.Group("/users")
 			{
-				users.GET("/listall", adminHandler.ListAllUsers)
+				users.GET("/", adminHandler.ListAllUsers)
 				users.GET("/:user_id", adminHandler.DisplayUser)
+				users.PATCH("/:user_id/report", adminHandler.ReportUser)
 			}
 			category := admin.Group("/category")
 			{
 				category.POST("/create", productHandler.CreateCategory)
 				category.PATCH("/update/:id", productHandler.UpdateCategory)
 				category.DELETE("/delete/:id", productHandler.DeleteCategory)
-				category.GET("/listall", productHandler.ListAllCategories)
+				category.GET("/", productHandler.ListAllCategories)
 				category.GET("/:id", productHandler.DisplayCategory)
 			}
 			brand := admin.Group("/brand")
@@ -58,7 +60,7 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 				brand.POST("/create", productHandler.CreateBrand)
 				brand.PATCH("/update/:id", productHandler.UpdateBrand)
 				brand.DELETE("/delete/:id", productHandler.DeleteBrand)
-				brand.GET("/listall", productHandler.ListAllBrands)
+				brand.GET("/", productHandler.ListAllBrands)
 				brand.GET("/:brand_id", productHandler.DisplayBrand)
 			}
 			product := admin.Group("/product")
@@ -66,17 +68,20 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 				product.POST("/create", productHandler.AddProduct)
 				product.PATCH("/update/:product_id", productHandler.UpdateProduct)
 				product.DELETE("/delete/:product_id", productHandler.DeleteProduct)
-				product.GET("/listall", productHandler.ListAllProducts)
+				product.GET("/", productHandler.ListAllProducts)
 				product.GET("/:product_id", productHandler.DisplayProduct)
 			}
 			productItem := admin.Group("/productitem")
 			{
 				productItem.POST("/create", productHandler.AddProductItem)
+				productItem.POST("/create/uploadimage/:productItem_id", productHandler.UploadImage)
 				productItem.PATCH("/update/:productItem_id", productHandler.UpdateProductItem)
 				productItem.DELETE("/delete/:productItem_id", productHandler.DeleteProductItem)
-				productItem.GET("/listall", productHandler.ListAllProductItems)
+				productItem.GET("/", productHandler.ListAllProductItems)
 				productItem.GET("/:productItem_id", productHandler.DisplayProductItem)
+				productItem.DELETE("/:productItem_id/deleteimage", productHandler.DeleteImage)
 			}
+
 		}
 	}
 	superAdmin := engine.Group("/superadmin")
@@ -88,13 +93,17 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 			admin := superAdmin.Group("/admin")
 			{
 				admin.POST("/create", superadminHandler.CreateAdmin)
-				admin.GET("/listall", superadminHandler.ListAllAdmins)
+				admin.GET("/", superadminHandler.ListAllAdmins)
 				admin.GET("/:admin_id", superadminHandler.DisplayAdmin)
 				admin.PATCH("/:admin_id/block", superadminHandler.BlockAdmin)
+				admin.PATCH("/:admin_id/unblock", superadminHandler.UnBlockAdminManually)
 			}
 			user := superAdmin.Group("/user")
 			{
+				user.GET("/", adminHandler.ListAllUsers)
+				user.GET("/:user_id", adminHandler.DisplayUser)
 				user.PATCH("/:user_id/block", superadminHandler.BlockUser)
+				user.PATCH("/:user_id/unblock", superadminHandler.UnBlockUserManually)
 			}
 		}
 	}

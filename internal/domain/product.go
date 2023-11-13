@@ -43,7 +43,6 @@ type ProductItem struct {
 	Camera            int
 	Graphic_Processor string
 	Price             int
-	Image             string
 	Created_at        time.Time
 	Updated_at        time.Time
 }

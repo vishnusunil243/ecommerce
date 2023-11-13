@@ -11,7 +11,6 @@ type Product struct {
 	Description  string
 	Brand        string
 	CategoryName string
-	Image        string
 }
 type Brand struct {
 	Id            int
@@ -36,5 +35,8 @@ type ProductItem struct {
 	Storage           int
 	Graphic_Processor string
 	Price             int
-	Image             string
+}
+type ImageResponse struct {
+	ID    int    `json:"id"`
+	Image []byte `json:"image"`
 }

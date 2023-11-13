@@ -38,9 +38,16 @@ func (c *superAdminDatabase) CreateAdmin(admin helperStruct.CreateAdmin) (respon
 }
 
 // ListAllAdmins implements interfaces.SuperAdminRepository.
-func (c *superAdminDatabase) ListAllAdmins() ([]response.AdminData, error) {
+func (c *superAdminDatabase) ListAllAdmins(queryParams helperStruct.QueryParams) ([]response.AdminData, error) {
 	var admins []response.AdminData
-	err := c.DB.Raw(`SELECT * FROM admins `).Scan(&admins).Error
+	getAdmins := `SELECT * FROM admins`
+	if queryParams.Limit != 0 && queryParams.Page != 0 {
+		getAdmins = fmt.Sprintf("%s LIMIT %d OFFSET %d", getAdmins, queryParams.Limit, (queryParams.Page-1)*queryParams.Limit)
+	}
+	if queryParams.Limit == 0 || queryParams.Page == 0 {
+		getAdmins = fmt.Sprintf("%s LIMIT 10 OFFSET 0", getAdmins)
+	}
+	err := c.DB.Raw(getAdmins).Scan(&admins).Error
 	return admins, err
 }
 
@@ -64,6 +71,13 @@ func (c *superAdminDatabase) BlockAdmin(id int) (response.AdminData, error) {
 	}
 	updateQuery := `UPDATE admins SET is_blocked=true WHERE id=? RETURNING id,name,email `
 	err := c.DB.Raw(updateQuery, id).Scan(&admin).Error
+	if err != nil {
+		return admin, err
+	}
+	err = c.DB.Exec(`
+		INSERT INTO admin_infos(admin_id, blocked_at, block_until) 
+		(SELECT id, NOW(), NOW() + INTERVAL '5 minutes' FROM admins WHERE id=?) 
+	`, admin.Id).Error
 	return admin, err
 
 }
@@ -77,5 +91,38 @@ func (c *superAdminDatabase) BlockUser(id int) (response.UserData, error) {
 		return userData, fmt.Errorf("no  user found with given id")
 	}
 	err := c.DB.Raw(`UPDATE users SET is_blocked=true WHERE id=? RETURNING id,email,name,mobile`, id).Scan(&userData).Error
+	if err != nil {
+		return userData, err
+	}
+	err = c.DB.Exec(`
+		INSERT INTO user_infos(users_id, blocked_at, block_until) 
+		(SELECT id, NOW(), NOW() + INTERVAL '4 minutes' FROM users WHERE id=?) 
+	`, userData.Id).Error
+	return userData, err
+}
+
+// UnBlockAdminManually implements interfaces.SuperAdminRepository.
+func (c *superAdminDatabase) UnBlockAdminManually(id int) (response.AdminData, error) {
+	var exists bool
+	var admin response.AdminData
+	c.DB.Raw(`select exists(select 1 from admins where id=?)`, id).Scan(&exists)
+	if !exists {
+		return admin, fmt.Errorf("no  admin found with given id")
+	}
+	updateQuery := `UPDATE admins SET is_blocked=false WHERE id=? RETURNING id,email,name`
+	err := c.DB.Raw(updateQuery, id).Scan(&admin).Error
+	return admin, err
+}
+
+// UnBlockUserManually implements interfaces.SuperAdminRepository.
+func (c *superAdminDatabase) UnBlockUserManually(id int) (response.UserData, error) {
+	var exists bool
+	var userData response.UserData
+	c.DB.Raw(`select exists(select 1 from users where id=?)`, id).Scan(&exists)
+	if !exists {
+		return userData, fmt.Errorf("no  user found with given id")
+	}
+	updateQuery := `UPDATE users SET is_blocked=false WHERE id=? RETURNING id,email,name,mobile `
+	err := c.DB.Raw(updateQuery, id).Scan(&userData).Error
 	return userData, err
 }

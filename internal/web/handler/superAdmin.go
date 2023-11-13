@@ -89,7 +89,10 @@ func (s *SuperAdminHandler) CreateAdmin(c *gin.Context) {
 	})
 }
 func (s *SuperAdminHandler) ListAllAdmins(c *gin.Context) {
-	admins, err := s.superAdminUsecase.ListAllAdmins()
+	var queryParams helperStruct.QueryParams
+	queryParams.Page, _ = strconv.Atoi(c.Query("page"))
+	queryParams.Limit, _ = strconv.Atoi(c.Query("limit"))
+	admins, err := s.superAdminUsecase.ListAllAdmins(queryParams)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Response{
 			StatusCode: 400,
@@ -189,6 +192,64 @@ func (s *SuperAdminHandler) BlockUser(c *gin.Context) {
 	c.JSON(http.StatusOK, response.Response{
 		StatusCode: 200,
 		Message:    "user blocked successfully",
+		Data:       userData,
+		Errors:     nil,
+	})
+}
+func (s *SuperAdminHandler) UnBlockAdminManually(c *gin.Context) {
+	paramId := c.Param("admin_id")
+	id, err := strconv.Atoi(paramId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error parsing params",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	userData, err := s.superAdminUsecase.UnBlockAdminManually(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error unblocking user",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "admin unblocked successfully",
+		Data:       userData,
+		Errors:     nil,
+	})
+}
+func (s *SuperAdminHandler) UnBlockUserManually(c *gin.Context) {
+	paramId := c.Param("user_id")
+	id, err := strconv.Atoi(paramId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error parsing params",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	userData, err := s.superAdminUsecase.UnBlockUserManually(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error unblocking user",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "user unblocked successfully",
 		Data:       userData,
 		Errors:     nil,
 	})

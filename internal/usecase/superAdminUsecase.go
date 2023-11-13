@@ -60,8 +60,8 @@ func (cr *superAdminUsecase) CreateAdmin(admin helperStruct.CreateAdmin) (respon
 }
 
 // ListAllAdmins implements interfaces.SuperAdminUseCase.
-func (cr *superAdminUsecase) ListAllAdmins() ([]response.AdminData, error) {
-	admins, err := cr.superAdminRepo.ListAllAdmins()
+func (cr *superAdminUsecase) ListAllAdmins(queryParams helperStruct.QueryParams) ([]response.AdminData, error) {
+	admins, err := cr.superAdminRepo.ListAllAdmins(queryParams)
 	return admins, err
 }
 
@@ -80,5 +80,17 @@ func (cr *superAdminUsecase) BlockAdmin(id int) (response.AdminData, error) {
 // BlockUser implements interfaces.SuperAdminUseCase.
 func (cr *superAdminUsecase) BlockUser(id int) (response.UserData, error) {
 	userData, err := cr.superAdminRepo.BlockUser(id)
+	return userData, err
+}
+
+// UnBlockAdminManually implements interfaces.SuperAdminUseCase.
+func (cr *superAdminUsecase) UnBlockAdminManually(id int) (response.AdminData, error) {
+	adminData, err := cr.superAdminRepo.UnBlockAdminManually(id)
+	return adminData, err
+}
+
+// UnBlockUserManually implements interfaces.SuperAdminUseCase.
+func (cr *superAdminUsecase) UnBlockUserManually(id int) (response.UserData, error) {
+	userData, err := cr.superAdminRepo.UnBlockUserManually(id)
 	return userData, err
 }

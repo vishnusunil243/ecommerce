@@ -1,6 +1,8 @@
 package usecase
 
 import (
+	"io"
+
 	"main.go/internal/common/helperStruct"
 	"main.go/internal/common/response"
 	"main.go/internal/repository/interfaces"
@@ -66,8 +68,8 @@ func (cr *ProductUsecase) DeleteBrand(id int) error {
 }
 
 // ListAllBrands implements interfaces.ProductUsecase.
-func (cr *ProductUsecase) ListAllBrands() ([]response.Brand, error) {
-	allBrands, err := cr.productRepo.ListAllBrands()
+func (cr *ProductUsecase) ListAllBrands(queryParams helperStruct.QueryParams) ([]response.Brand, error) {
+	allBrands, err := cr.productRepo.ListAllBrands(queryParams)
 	return allBrands, err
 }
 
@@ -96,8 +98,8 @@ func (cr *ProductUsecase) DeletProduct(id int) error {
 }
 
 // ListAllProducts implements interfaces.ProductUsecase.
-func (cr *ProductUsecase) ListAllProducts() ([]response.Product, error) {
-	products, err := cr.productRepo.ListAllProducts()
+func (cr *ProductUsecase) ListAllProducts(queryParams helperStruct.QueryParams) ([]response.Product, error) {
+	products, err := cr.productRepo.ListAllProducts(queryParams)
 	return products, err
 }
 
@@ -120,8 +122,8 @@ func (cr *ProductUsecase) UpdateProductItem(id int, productItem helperStruct.Pro
 }
 
 // ListAllProductItems implements interfaces.ProductUsecase.
-func (cr *ProductUsecase) ListAllProductItems() ([]response.ProductItem, error) {
-	productItems, err := cr.productRepo.ListAllProductItems()
+func (cr *ProductUsecase) ListAllProductItems(queryParams helperStruct.QueryParams) ([]response.ProductItem, error) {
+	productItems, err := cr.productRepo.ListAllProductItems(queryParams)
 	return productItems, err
 }
 
@@ -135,4 +137,24 @@ func (cr *ProductUsecase) DeleteProductItem(id int) error {
 func (cr *ProductUsecase) DisplayProductItem(id int) (response.ProductItem, error) {
 	productItem, err := cr.productRepo.DisplayProductItem(id)
 	return productItem, err
+}
+
+// ImageUpload implements interfaces.ProductUsecase.
+func (cr *ProductUsecase) ImageUpload(image helperStruct.ImageHelper) (response.ImageResponse, error) {
+
+	// Read the file content
+	fileBytes, err := io.ReadAll(image.ImageFile)
+	if err != nil {
+		return response.ImageResponse{}, err
+	}
+	image.ImageData = fileBytes
+	newImage, err := cr.productRepo.UploadImage(image)
+	return newImage, err
+
+}
+
+// DeleteImage implements interfaces.ProductUsecase.
+func (cr *ProductUsecase) DeleteImage(id int) error {
+	err := cr.productRepo.DeleteImage(id)
+	return err
 }

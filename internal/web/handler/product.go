@@ -265,7 +265,10 @@ func (cr *ProductHandler) DeleteBrand(c *gin.Context) {
 
 }
 func (cr *ProductHandler) ListAllBrands(c *gin.Context) {
-	allBrands, err := cr.productUseCase.ListAllBrands()
+	var queryParams helperStruct.QueryParams
+	queryParams.Page, _ = strconv.Atoi(c.Query("page"))
+	queryParams.Limit, _ = strconv.Atoi(c.Query("limit"))
+	allBrands, err := cr.productUseCase.ListAllBrands(queryParams)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Response{
 			StatusCode: 400,
@@ -410,7 +413,10 @@ func (p *ProductHandler) DeleteProduct(c *gin.Context) {
 	})
 }
 func (p *ProductHandler) ListAllProducts(c *gin.Context) {
-	products, err := p.productUseCase.ListAllProducts()
+	var queryParams helperStruct.QueryParams
+	queryParams.Page, _ = strconv.Atoi(c.Query("page"))
+	queryParams.Limit, _ = strconv.Atoi(c.Query("limit"))
+	products, err := p.productUseCase.ListAllProducts(queryParams)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Response{
 			StatusCode: 400,
@@ -526,7 +532,10 @@ func (p *ProductHandler) UpdateProductItem(c *gin.Context) {
 	})
 }
 func (p *ProductHandler) ListAllProductItems(c *gin.Context) {
-	productItems, err := p.productUseCase.ListAllProductItems()
+	var queryParams helperStruct.QueryParams
+	queryParams.Page, _ = strconv.Atoi(c.Query("page"))
+	queryParams.Limit, _ = strconv.Atoi(c.Query("limit"))
+	productItems, err := p.productUseCase.ListAllProductItems(queryParams)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Response{
 			StatusCode: 400,
@@ -555,6 +564,7 @@ func (p *ProductHandler) DeleteProductItem(c *gin.Context) {
 		})
 		return
 	}
+
 	err = p.productUseCase.DeleteProductItem(id)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Response{
@@ -598,6 +608,91 @@ func (p *ProductHandler) DisplayProductItem(c *gin.Context) {
 		StatusCode: 200,
 		Message:    "productitem displayed successfully",
 		Data:       productItem,
+		Errors:     nil,
+	})
+}
+func (p *ProductHandler) UploadImage(c *gin.Context) {
+	paramId := c.Param("productItem_id")
+	id, err := strconv.Atoi(paramId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error parsing params",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+
+	fileHeade, err := c.FormFile("image")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error getting image",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	file, err := fileHeade.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Response{
+			StatusCode: 500,
+			Message:    "error opening file",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+
+	imageHelper := helperStruct.ImageHelper{
+		ImageFile:     file,
+		ProductItemId: uint(id),
+		ImageType:     fileHeade.Header.Get("Content-Type"),
+	}
+	newImage, err := p.productUseCase.ImageUpload(imageHelper)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error uploading image",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "image uploaded successfully",
+		Data:       newImage,
+		Errors:     nil,
+	})
+}
+func (p *ProductHandler) DeleteImage(c *gin.Context) {
+	paramId := c.Param("productItem_id")
+	id, err := strconv.Atoi(paramId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error parsing params",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	err = p.productUseCase.DeleteImage(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error deleting image",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "image deleted successfully",
+		Data:       nil,
 		Errors:     nil,
 	})
 }

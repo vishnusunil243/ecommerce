@@ -3,13 +3,14 @@ package domain
 import "time"
 
 type Users struct {
-	ID        uint   `gorm:"primarykey;unique;notnull"`
-	Name      string `json:"name" binding:"required"`
-	Email     string `json:"email" binding:"required,email" gorm:"unique;not null"`
-	Mobile    string `json:"mobile" binding:"required,eq=10" gorm:"unique;not null"`
-	Password  string `json:"password" gorm:"not null"`
-	IsBlocked bool   `gorm:"default:false"`
-	CreatedAt time.Time
+	ID          uint   `gorm:"primarykey;unique;notnull"`
+	Name        string `json:"name" binding:"required"`
+	Email       string `json:"email" binding:"required,email" gorm:"unique;not null"`
+	Mobile      string `json:"mobile" binding:"required,eq=10" gorm:"unique;not null"`
+	Password    string `json:"password" gorm:"not null"`
+	IsBlocked   bool   `gorm:"default:false"`
+	ReportCount int
+	CreatedAt   time.Time
 }
 type Address struct {
 	ID           uint `gorm:"primaryKey;unique;not null"`
@@ -28,6 +29,16 @@ type UserInfo struct {
 	UsersID           uint
 	Users             Users `gorm:"foreignKey:UsersID"`
 	BlockedAt         time.Time
+	BlockUntil        time.Time
 	BlockedBy         uint
+	ReportCount       uint
 	ReasonForBlocking string
+}
+type ReportInfo struct {
+	ID                 uint `gorm:"primaryKey"`
+	UsersId            uint
+	Users              Users `gorm:"foreignKey:UsersId"`
+	ReportCount        uint
+	ReasonForReporting string
+	ReportedBy         uint
 }

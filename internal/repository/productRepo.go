@@ -128,14 +128,21 @@ func (c *ProductDatabase) DeleteBrand(id int) error {
 }
 
 // ListAllBrands implements interfaces.ProductRepository.
-func (c *ProductDatabase) ListAllBrands() ([]response.Brand, error) {
+func (c *ProductDatabase) ListAllBrands(queryParams helperStruct.QueryParams) ([]response.Brand, error) {
 	var brands []response.Brand
-	err := c.DB.Raw(`
+	getBrands := `
     SELECT brands.brandname AS name,brands.id,brands.category_id,brands.description, categories.category_name
     FROM brands
     JOIN categories ON brands.category_id = categories.id
 	
-`).Scan(&brands).Error
+`
+	if queryParams.Limit != 0 && queryParams.Page != 0 {
+		getBrands = fmt.Sprintf("%s LIMIT %d OFFSET %d", getBrands, queryParams.Limit, (queryParams.Page-1)*queryParams.Limit)
+	}
+	if queryParams.Limit == 0 || queryParams.Page == 0 {
+		getBrands = fmt.Sprintf("%s LIMIT 10 OFFSET 0", getBrands)
+	}
+	err := c.DB.Raw(getBrands).Scan(&brands).Error
 	return brands, err
 }
 
@@ -207,21 +214,60 @@ func (c *ProductDatabase) UpdateProduct(product helperStruct.Product, id int) (r
 
 // DeleteProduct implements interfaces.ProductRepository.
 func (c *ProductDatabase) DeleteProduct(id int) error {
+	// Check if the product exists
 	var exists bool
-	c.DB.Raw(`select exists(select 1 from products where id=?)`, id).Scan(&exists)
+	c.DB.Raw(`SELECT EXISTS(SELECT 1 FROM products WHERE id=?)`, id).Scan(&exists)
 	if !exists {
 		return fmt.Errorf("no product found with given id")
 	}
-	err := c.DB.Exec(`DELETE FROM products WHERE id= ?`, id).Error
-	return err
+
+	// Start a transaction
+	tx := c.DB.Begin()
+
+	// Check for errors
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	// Delete images related to the product
+	if err := tx.Exec(`DELETE FROM images WHERE product_item_id IN (SELECT id FROM product_items WHERE product_id = ?)`, id).Error; err != nil {
+		// Rollback the transaction in case of an error
+		tx.Rollback()
+		return err
+	}
+
+	// Delete product items related to the product
+	if err := tx.Exec(`DELETE FROM product_items WHERE product_id = ?`, id).Error; err != nil {
+		// Rollback the transaction in case of an error
+		tx.Rollback()
+		return err
+	}
+
+	// Delete the product itself
+	if err := tx.Exec(`DELETE FROM products WHERE id = ?`, id).Error; err != nil {
+		// Rollback the transaction in case of an error
+		tx.Rollback()
+		return err
+	}
+
+	// Commit the transaction if everything is successful
+	return tx.Commit().Error
 }
 
 // ListAllProducts implements interfaces.ProductRepository.
-func (c *ProductDatabase) ListAllProducts() ([]response.Product, error) {
+func (c *ProductDatabase) ListAllProducts(queryParams helperStruct.QueryParams) ([]response.Product, error) {
 	var products []response.Product
-	err := c.DB.Raw(`SELECT products.product_name AS name,products.description,products.id,brand, categories.category_name
+	getProductDetails := `SELECT products.product_name AS name,products.description,products.id,brand, categories.category_name
 	FROM products
-	JOIN categories ON products.category_id = categories.id`).Scan(&products).Error
+	JOIN categories ON products.category_id = categories.id`
+	if queryParams.Limit != 0 && queryParams.Page != 0 {
+		getProductDetails = fmt.Sprintf("%s LIMIT %d OFFSET %d", getProductDetails, queryParams.Limit, (queryParams.Page-1)*queryParams.Limit)
+	}
+	if queryParams.Limit == 0 || queryParams.Page == 0 {
+		getProductDetails = fmt.Sprintf("%s LIMIT 10 OFFSET 0", getProductDetails)
+	}
+	err := c.DB.Raw(getProductDetails).Scan(&products).Error
+
 	return products, err
 }
 
@@ -244,9 +290,9 @@ func (c *ProductDatabase) DisplayProduct(id int) (response.Product, error) {
 // AddProductItem implements interfaces.ProductRepository.
 func (c *ProductDatabase) AddProductItem(productItem helperStruct.ProductItem) (response.ProductItem, error) {
 	var newProductItem response.ProductItem
-	insertQuery := `INSERT INTO product_items (id,product_id,sku,qty_in_stock,color,ram,battery,screen_size,storage,price,image,graphic_processor,created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW()) 
-	RETURNING id,sku,color,qty_in_stock,battery,ram,screen_size,storage,price,image,graphic_processor`
-	err := c.DB.Raw(insertQuery, productItem.Product_id, productItem.Product_id, productItem.Sku, productItem.Qty, productItem.Color, productItem.Ram, productItem.Battery, productItem.Screen_size, productItem.Storage, productItem.Price, productItem.Image, productItem.Graphic_Processor).Scan(&newProductItem).Error
+	insertQuery := `INSERT INTO product_items (id,product_id,sku,qty_in_stock,color,ram,battery,screen_size,storage,price,graphic_processor,created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW()) 
+	RETURNING id,sku,color,qty_in_stock,battery,ram,screen_size,storage,price,graphic_processor`
+	err := c.DB.Raw(insertQuery, productItem.Product_id, productItem.Product_id, productItem.Sku, productItem.Qty, productItem.Color, productItem.Ram, productItem.Battery, productItem.Screen_size, productItem.Storage, productItem.Price, productItem.Graphic_Processor).Scan(&newProductItem).Error
 	if err != nil {
 		return newProductItem, err
 	}
@@ -284,28 +330,58 @@ func (c *ProductDatabase) UpdateProductItem(id int, productItem helperStruct.Pro
 }
 
 // ListAllProductItems implements interfaces.ProductRepository.
-func (c *ProductDatabase) ListAllProductItems() ([]response.ProductItem, error) {
+func (c *ProductDatabase) ListAllProductItems(queryParams helperStruct.QueryParams) ([]response.ProductItem, error) {
 	var productItems []response.ProductItem
-	selectQuery := `
+	getProductItemDetails := `
     SELECT product_items.*, products.description,products.product_name,products.brand, categories.category_name
     FROM product_items
     JOIN products ON product_items.product_id = products.id
     JOIN categories ON products.category_id = categories.id
 `
-	err := c.DB.Raw(selectQuery).Scan(&productItems).Error
+	if queryParams.Limit != 0 && queryParams.Page != 0 {
+		getProductItemDetails = fmt.Sprintf("%s LIMIT %d OFFSET %d", getProductItemDetails, queryParams.Limit, (queryParams.Page-1)*queryParams.Limit)
+	}
+	if queryParams.Limit == 0 || queryParams.Page == 0 {
+		getProductItemDetails = fmt.Sprintf("%s LIMIT 10 OFFSET 0", getProductItemDetails)
+	}
+	err := c.DB.Raw(getProductItemDetails).Scan(&productItems).Error
 	return productItems, err
 
 }
 
 // DeleteProductItem implements interfaces.ProductRepository.
 func (c *ProductDatabase) DeleteProductItem(id int) error {
+	// Check if the product item exists
 	var exists bool
-	c.DB.Raw(`select exists(select 1 from product_items where id=?)`, id).Scan(&exists)
+	c.DB.Raw(`SELECT EXISTS(SELECT 1 FROM product_items WHERE id=?)`, id).Scan(&exists)
 	if !exists {
-		return fmt.Errorf("no productitem found with given id")
+		return fmt.Errorf("no product item found with given id")
 	}
-	err := c.DB.Exec(`DELETE FROM product_items WHERE id=?`, id).Error
-	return err
+
+	// Start a transaction
+	tx := c.DB.Begin()
+
+	// Check for errors
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	// Delete images related to the product item
+	if err := tx.Exec(`DELETE FROM images WHERE product_item_id = ?`, id).Error; err != nil {
+		// Rollback the transaction in case of an error
+		tx.Rollback()
+		return err
+	}
+
+	// Delete the product item itself
+	if err := tx.Exec(`DELETE FROM product_items WHERE id = ?`, id).Error; err != nil {
+		// Rollback the transaction in case of an error
+		tx.Rollback()
+		return err
+	}
+
+	// Commit the transaction if everything is successful
+	return tx.Commit().Error
 }
 
 // DisplayProductItem implements interfaces.ProductRepository.
@@ -325,4 +401,24 @@ func (c *ProductDatabase) DisplayProductItem(id int) (response.ProductItem, erro
 `
 	err := c.DB.Raw(selectQuery, id).Scan(&productItem).Error
 	return productItem, err
+}
+
+// UploadImage implements interfaces.ProductRepository.
+func (c *ProductDatabase) UploadImage(Image helperStruct.ImageHelper) (response.ImageResponse, error) {
+	var image response.ImageResponse
+	err := c.DB.Raw(`INSERT INTO images(product_item_id,image) VALUES ($1,$2) RETURNING image,product_item_id AS id`, Image.ProductItemId, Image.ImageData).Scan(&image).Error
+	return image, err
+}
+
+// DeleteImage implements interfaces.ProductRepository.
+func (c *ProductDatabase) DeleteImage(id int) error {
+	var exists bool
+
+	c.DB.Raw(`SELECT exists (select  1 from images WHERE product_item_id=?)`, id).Scan(&exists)
+	if !exists {
+		return fmt.Errorf("no image found for the given productitem")
+	}
+
+	err := c.DB.Exec(`DELETE FROM images WHERE product_item_id=?`, id).Error
+	return err
 }

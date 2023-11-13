@@ -5,6 +5,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"main.go/internal/domain"
+	"main.go/internal/infrastructure/concurrency"
 	"main.go/internal/infrastructure/config"
 )
 
@@ -27,6 +28,13 @@ func ConnectDatabase(cfg config.Config) (*gorm.DB, error) {
 		domain.Brand{},
 		&domain.Orders{},
 		&domain.SuperAdmin{},
+		&domain.AdminInfo{},
+		&domain.ReportInfo{},
+		&domain.Images{},
 	)
+	unblockUser := concurrency.NewConcurrency(db)
+
+	// Start the UserStatusChecker goroutine
+	unblockUser.Concurrency()
 	return db, err
 }

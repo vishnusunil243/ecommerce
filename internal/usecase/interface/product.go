@@ -14,16 +14,18 @@ type ProductUsecase interface {
 	CreateBrand(brand helperStruct.Brand) (response.Brand, error)
 	UpdatedBrand(brand helperStruct.Brand, id int) (response.Brand, error)
 	DeleteBrand(id int) error
-	ListAllBrands() ([]response.Brand, error)
+	ListAllBrands(queryParams helperStruct.QueryParams) ([]response.Brand, error)
 	DisplayBrand(id int) (response.Brand, error)
 	AddProduct(product helperStruct.Product) (response.Product, error)
 	UpdateProduct(product helperStruct.Product, id int) (response.Product, error)
 	DeletProduct(id int) error
-	ListAllProducts() ([]response.Product, error)
+	ListAllProducts(queryParams helperStruct.QueryParams) ([]response.Product, error)
 	DisplayProduct(id int) (response.Product, error)
 	AddProductItem(productItem helperStruct.ProductItem) (response.ProductItem, error)
 	UpdateProductItem(id int, productItem helperStruct.ProductItem) (response.ProductItem, error)
-	ListAllProductItems() ([]response.ProductItem, error)
+	ListAllProductItems(queryParams helperStruct.QueryParams) ([]response.ProductItem, error)
 	DeleteProductItem(id int) error
+	ImageUpload(image helperStruct.ImageHelper) (response.ImageResponse, error)
+	DeleteImage(id int) error
 	DisplayProductItem(id int) (response.ProductItem, error)
 }

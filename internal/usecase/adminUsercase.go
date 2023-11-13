@@ -25,18 +25,16 @@ func NewAdminUsecase(adminRepo interfaces.AdminRepository) services.AdminUseCase
 
 // AdminLogin implements interfaces.AdminUseCase.
 func (c *adminUsecase) AdminLogin(admin helperStruct.LoginReq) (string, error) {
-	fmt.Println("ssssss")
 	var cfg config.Config
 	adminData, err := c.adminRepo.AdminLogin(admin.Email)
 	if err != nil {
 		return "", err
 	}
-	if adminData.IsBlocked == true {
+	if adminData.IsBlocked {
 		return "", fmt.Errorf("admin is blocked")
 	}
 	err = bcrypt.CompareHashAndPassword([]byte(adminData.Password), []byte(admin.Password))
 	fmt.Println(adminData.Password)
-	fmt.Println("hii")
 	if err != nil {
 		return "", err
 	}
@@ -56,8 +54,8 @@ func (c *adminUsecase) AdminLogin(admin helperStruct.LoginReq) (string, error) {
 }
 
 // ListAllUsers implements interfaces.AdminUseCase.
-func (cr *adminUsecase) ListAllUsers() ([]response.UserDetails, error) {
-	users, err := cr.adminRepo.ListAllUsers()
+func (cr *adminUsecase) ListAllUsers(queryParams helperStruct.QueryParams) ([]response.UserDetails, error) {
+	users, err := cr.adminRepo.ListAllUsers(queryParams)
 	return users, err
 }
 
@@ -65,4 +63,10 @@ func (cr *adminUsecase) ListAllUsers() ([]response.UserDetails, error) {
 func (cr *adminUsecase) DisplayUser(id int) (response.UserDetails, error) {
 	user, err := cr.adminRepo.DispalyUser(id)
 	return user, err
+}
+
+// ReportUser implements interfaces.AdminUseCase.
+func (cr *adminUsecase) ReportUser(UsersId int) (response.UserReport, error) {
+	reportInfo, err := cr.adminRepo.ReportUser(UsersId)
+	return reportInfo, err
 }

@@ -60,7 +60,10 @@ func (cr *AdminHandler) AdminLogout(c *gin.Context) {
 	})
 }
 func (cr *AdminHandler) ListAllUsers(c *gin.Context) {
-	users, err := cr.adminUsecase.ListAllUsers()
+	var queryParams helperStruct.QueryParams
+	queryParams.Page, _ = strconv.Atoi(c.Query("page"))
+	queryParams.Limit, _ = strconv.Atoi(c.Query("limit"))
+	users, err := cr.adminUsecase.ListAllUsers(queryParams)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Response{
 			StatusCode: 400,
@@ -103,6 +106,36 @@ func (cr *AdminHandler) DisplayUser(c *gin.Context) {
 		StatusCode: 200,
 		Message:    "user displayed successfully",
 		Data:       user,
+		Errors:     nil,
+	})
+}
+func (a *AdminHandler) ReportUser(c *gin.Context) {
+	paramUsersId := c.Param("user_id")
+	UsersId, err := strconv.Atoi(paramUsersId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error parsing params",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+
+	reportInfo, err := a.adminUsecase.ReportUser(UsersId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error reporting user",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "user reporteed successfully",
+		Data:       reportInfo,
 		Errors:     nil,
 	})
 }
