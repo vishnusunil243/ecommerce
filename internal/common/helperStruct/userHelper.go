@@ -25,14 +25,22 @@ type VerifyOtp struct {
 type Address struct {
 	House_number string `json:"house_number" `
 	Street       string `json:"street" `
-	City         string `json:"city " `
-	District     string `json:"district " `
+	City         string `json:"city" `
+	District     string `json:"district" `
 	Landmark     string `json:"landmark" `
-	Pincode      int    `json:"pincode " `
+	Pincode      int    `json:"pincode" `
 	IsDefault    bool   `json:"isdefault" `
 }
 
 type UpdatePassword struct {
 	OldPassword string `json:"oldpassword" `
-	NewPasswoed string `json:"newpassword" `
+	NewPassword string `json:"newpassword" `
+}
+type ForgotPassword struct {
+	Email       string `json:"email"`
+	NewPassword string `json:"newpassword"`
+	OTP         string `json:"otp"`
+}
+type UpdateMobile struct {
+	Mobile string `json:"mobile"`
 }

@@ -36,3 +36,103 @@ func (c *userDatabase) UserSignUp(user helperStruct.UserReq) (response.UserData,
 	return userData, err
 
 }
+
+// AddAdress implements interfaces.UserRepository.
+func (c *userDatabase) AddAdress(id int, address helperStruct.Address) (response.Address, error) {
+	var newAdress response.Address
+	if address.IsDefault { //Change the default address into false
+		changeDefault := `UPDATE addresses SET is_default = $1 WHERE users_id=$2 AND is_default=$3`
+		err := c.DB.Exec(changeDefault, false, id, true).Error
+
+		if err != nil {
+			return newAdress, err
+		}
+	}
+	insertQuery := `INSERT INTO addresses(house_number,users_id,city,district,landmark,pincode,street,is_default) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING house_number,pincode,street,city,district,landmark `
+	err := c.DB.Raw(insertQuery, address.House_number, id, address.City, address.District, address.Landmark, address.Pincode, address.Street, address.IsDefault).Scan(&newAdress).Error
+	return newAdress, err
+}
+
+// UpdateAddress implements interfaces.UserRepository.
+func (c *userDatabase) UpdateAddress(addressId int, address helperStruct.Address) (response.Address, error) {
+	var updatedAddress response.Address
+	if address.IsDefault { //Change the default address into false
+		changeDefault := `UPDATE addresses SET is_default = $1 WHERE users_id=$2 AND is_default=$3`
+		err := c.DB.Exec(changeDefault, false, addressId, true).Error
+
+		if err != nil {
+			return updatedAddress, err
+		}
+	}
+	UpdateQuery := `UPDATE addresses SET house_number=$1,city=$2,district=$3,landmark=$4,pincode=$5,street=$6,is_default=$7 WHERE id=$8 RETURNING house_number,city,district,landmark,pincode,street,is_default`
+	err := c.DB.Raw(UpdateQuery, address.House_number, address.City, address.District, address.Landmark, address.Pincode, address.Street, address.IsDefault, addressId).Scan(&updatedAddress).Error
+	return updatedAddress, err
+}
+
+// ViewUserProfile implements interfaces.UserRepository.
+func (c *userDatabase) ViewUserProfile(id int) (response.UserProfile, error) {
+	var userProfile response.UserProfile
+
+	selectProfileQuery := `
+		SELECT users.*, addresses.*
+		FROM users
+		LEFT JOIN addresses ON users.id = addresses.users_id AND addresses.is_default=true
+		WHERE users.id = ? 
+	`
+
+	err := c.DB.Raw(selectProfileQuery, id).Scan(&userProfile).Error
+	if err != nil {
+		return userProfile, err
+	}
+	return userProfile, err
+}
+
+// UpdateMobile implements interfaces.UserRepository.
+func (c *userDatabase) UpdateMobile(id int, mobile string) (response.UserProfile, error) {
+	var userProfile response.UserProfile
+	updateQuery := `UPDATE users SET mobile=$1 WHERE id=$2`
+	err := c.DB.Exec(updateQuery, mobile, id).Error
+	if err != nil {
+		return userProfile, err
+	}
+	selectProfileQuery := `
+	SELECT users.*, addresses.*
+	FROM users
+	LEFT JOIN addresses ON users.id = addresses.users_id
+	WHERE users.id = ? AND addresses.is_default=true
+`
+	err = c.DB.Raw(selectProfileQuery, id).Scan(&userProfile).Error
+	return userProfile, err
+}
+
+// ChangePassword implements interfaces.UserRepository.
+func (c *userDatabase) ChangePassword(id int, password helperStruct.UpdatePassword) (response.UserProfile, error) {
+	var userProfile response.UserProfile
+	updateQuery := `UPDATE users SET password=$1 WHERE id=$2`
+	err := c.DB.Exec(updateQuery, password.NewPassword, id).Error
+	if err != nil {
+		return userProfile, err
+	}
+	selectProfileQuery := `
+SELECT users.*, addresses.*
+FROM users
+LEFT JOIN addresses ON users.id = addresses.users_id
+WHERE users.id = ? AND addresses.is_default=true
+`
+	err = c.DB.Raw(selectProfileQuery, id).Scan(&userProfile).Error
+	return userProfile, err
+}
+
+// RetrieveUserInformation implements interfaces.UserRepository.
+func (c *userDatabase) RetrieveUserInformation(id int) (domain.Users, error) {
+	var userData domain.Users
+	err := c.DB.Raw(`SELECT * FROM users WHERE id=?`, id).Scan(&userData).Error
+	return userData, err
+}
+
+// ForgotPassword implements interfaces.UserRepository.
+func (c *userDatabase) ForgotPassword(newpassword helperStruct.ForgotPassword) error {
+	updateQuery := `UPDATE users SET password=$1 WHERE email=$2`
+	err := c.DB.Exec(updateQuery, newpassword.NewPassword, newpassword.Email).Error
+	return err
+}

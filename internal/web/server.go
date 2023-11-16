@@ -12,7 +12,7 @@ type ServerHTTP struct {
 	engine *gin.Engine
 }
 
-func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.AdminHandler, productHandler *handler.ProductHandler, superadminHandler *handler.SuperAdminHandler) *ServerHTTP {
+func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.AdminHandler, productHandler *handler.ProductHandler, superadminHandler *handler.SuperAdminHandler, carrtHandler *handler.CartHandler) *ServerHTTP {
 	engine := gin.New()
 	engine.Use(gin.Logger())
 	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
@@ -29,9 +29,27 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 	{
 		user.POST("/signup", userHandler.UserSignup)
 		user.POST("/login", userHandler.UserLogin)
+		user.PATCH("/forgotpassword", userHandler.ForgotPassword)
 		user.Use(middleware.UserAuth)
 		{
 			user.POST("/logout", handler.UserLogout)
+			userProfile := user.Group("/userprofile")
+			{
+				userProfile.GET("/", userHandler.ViewUserProfile)
+				userProfile.PATCH("/mobile/edit", userHandler.UpdateMobile)
+				userProfile.PATCH("/changepassword", userHandler.ChangePassword)
+				address := userProfile.Group("/address")
+				{
+					address.POST("/add", userHandler.AddAddress)
+					address.PATCH("/:address_id/edit", userHandler.UpdateAddress)
+				}
+			}
+			cart := user.Group("/cart")
+			{
+				cart.GET("/", carrtHandler.ListCart)
+				cart.POST("/:product_item_id/addtocart", carrtHandler.AddToCart)
+				cart.DELETE("/:product_item_id/removefromcart", carrtHandler.RemoveFromCart)
+			}
 		}
 		user.Use(middleware.UserIsBlocked)
 	}

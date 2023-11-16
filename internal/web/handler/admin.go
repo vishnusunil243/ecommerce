@@ -54,7 +54,7 @@ func (cr *AdminHandler) AdminLogout(c *gin.Context) {
 	c.SetCookie("AdminAuth", "", -1, "", "", false, true)
 	c.JSON(http.StatusOK, response.Response{
 		StatusCode: 200,
-		Message:    "user logged out successfully",
+		Message:    "admin logged out successfully",
 		Data:       nil,
 		Errors:     nil,
 	})

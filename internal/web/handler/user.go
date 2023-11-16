@@ -1,22 +1,27 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"main.go/internal/common/helperStruct"
 	"main.go/internal/common/response"
 	services "main.go/internal/usecase/interface"
+	"main.go/internal/web/handlerUtil"
 	"main.go/internal/web/middleware"
 )
 
 type UserHandler struct {
 	userUseCase services.UserUseCase
+	cartUseCase services.CartUseCase
 }
 
-func NewUserHandler(usecase services.UserUseCase) *UserHandler {
+func NewUserHandler(usecase services.UserUseCase, cartusecase services.CartUseCase) *UserHandler {
 	return &UserHandler{
 		userUseCase: usecase,
+		cartUseCase: cartusecase,
 	}
 }
 func (cr *UserHandler) UserSignup(c *gin.Context) {
@@ -71,6 +76,18 @@ func (cr *UserHandler) UserSignup(c *gin.Context) {
 		})
 		return
 	}
+	err = cr.cartUseCase.CreateCart(userData.Id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error creating cart for the user",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		fmt.Println(err.Error())
+		return
+	}
+
 	c.JSON(http.StatusCreated, response.Response{
 		StatusCode: 201,
 		Message:    "user signed up successfully",
@@ -118,4 +135,251 @@ func UserLogout(c *gin.Context) {
 		Data:       nil,
 		Errors:     nil,
 	})
+}
+func (u *UserHandler) AddAddress(c *gin.Context) {
+	var address helperStruct.Address
+	err := c.BindJSON(&address)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error binding json",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	Id, err := handlerUtil.GetUserIdFromContext(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error getting user id",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	newAdress, err := u.userUseCase.AddAdress(Id, address)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "errror adding address",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "address addedd successfully",
+		Data:       newAdress,
+		Errors:     nil,
+	})
+
+}
+func (u *UserHandler) UpdateAddress(c *gin.Context) {
+	var address helperStruct.Address
+	err := c.BindJSON(&address)
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, response.Response{
+			StatusCode: 422,
+			Message:    "error binding json",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	paramId := c.Param("address_id")
+	id, err := strconv.Atoi(paramId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error parsing params",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	updatedAddress, err := u.userUseCase.UpdateAddress(id, address)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "errror updating address",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "address updated successfully",
+		Data:       updatedAddress,
+		Errors:     nil,
+	})
+
+}
+func (u *UserHandler) ViewUserProfile(c *gin.Context) {
+	Id, err := handlerUtil.GetUserIdFromContext(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error retrieving users id",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	userProfile, err := u.userUseCase.ViewUserProfile(Id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error retrieving user profile",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "user profile retrieved successfully",
+		Data:       userProfile,
+		Errors:     nil,
+	})
+
+}
+func (u *UserHandler) UpdateMobile(c *gin.Context) {
+	var mobile helperStruct.UpdateMobile
+	err := c.BindJSON(&mobile)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error binding json",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	Id, err := handlerUtil.GetUserIdFromContext(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error retrieving user id",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	userProfile, err := u.userUseCase.UpdateMobile(Id, mobile.Mobile)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error updating mobile",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "mobile number updated successfully",
+		Data:       userProfile,
+		Errors:     nil,
+	})
+}
+func (u *UserHandler) ChangePassword(c *gin.Context) {
+	var password helperStruct.UpdatePassword
+	err := c.BindJSON(&password)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error binding json",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	Id, err := handlerUtil.GetUserIdFromContext(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error getting user id from context",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	userProfile, err := u.userUseCase.ChangePassword(Id, password)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error updating password",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "password changed successfully",
+		Data:       userProfile,
+		Errors:     nil,
+	})
+}
+func (u *UserHandler) ForgotPassword(c *gin.Context) {
+	var forgotPassword helperStruct.ForgotPassword
+	err := c.BindJSON(&forgotPassword)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error binding json",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	if forgotPassword.OTP == "" {
+		err = middleware.SendOTP(forgotPassword.Email)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, response.Response{
+				StatusCode: 400,
+				Message:    "error sending otp to the given email",
+				Data:       nil,
+				Errors:     err.Error(),
+			})
+			return
+		}
+		c.JSON(http.StatusOK, response.Response{
+			StatusCode: 200,
+			Message:    "please enter the otp",
+			Data:       nil,
+			Errors:     nil,
+		})
+		return
+	} else {
+		if !middleware.VerifyOTP(forgotPassword.Email, forgotPassword.OTP) {
+			c.JSON(http.StatusBadRequest, response.Response{
+				StatusCode: 400,
+				Message:    "invalid otp",
+				Data:       nil,
+				Errors:     err.Error(),
+			})
+			return
+		}
+	}
+	err = u.userUseCase.ForgotPassword(forgotPassword)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error updating the password",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "password changed successfully",
+		Data:       nil,
+		Errors:     nil,
+	})
+
 }

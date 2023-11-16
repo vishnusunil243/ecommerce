@@ -22,6 +22,7 @@ func ConnectDatabase(cfg config.Config) (*gorm.DB, error) {
 		&domain.Admins{},
 		&domain.Users{},
 		&domain.UserInfo{},
+		&domain.Address{},
 		&domain.Product{},
 		&domain.ProductItem{},
 		&domain.Category{},
@@ -31,6 +32,8 @@ func ConnectDatabase(cfg config.Config) (*gorm.DB, error) {
 		&domain.AdminInfo{},
 		&domain.ReportInfo{},
 		&domain.Images{},
+		&domain.Carts{},
+		&domain.CartItem{},
 	)
 	unblockUser := concurrency.NewConcurrency(db)
 

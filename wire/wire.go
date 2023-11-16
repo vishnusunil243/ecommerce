@@ -17,14 +17,17 @@ func InitializeAPI1(cfg config.Config) (*http.ServerHTTP, error) {
 		repository.NewAdminRepo,
 		repository.NewProductRepo,
 		repository.NewSuperRepo,
+		repository.NewCartRepo,
 		usecase.NewUserUsecase,
 		usecase.NewAdminUsecase,
 		usecase.NewProductUsecase,
 		usecase.NewSuperAdminUsecase,
+		usecase.NewCartUseCase,
 		handler.NewUserHandler,
 		handler.NewAdminHandler,
 		handler.NewProductHandler,
 		handler.NewSuperAdminHandler,
+		handler.NewCartHandler,
 		http.NewServerHTTP,
 	)
 	return &http.ServerHTTP{}, nil
