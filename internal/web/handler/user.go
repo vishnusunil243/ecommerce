@@ -14,14 +14,16 @@ import (
 )
 
 type UserHandler struct {
-	userUseCase services.UserUseCase
-	cartUseCase services.CartUseCase
+	userUseCase   services.UserUseCase
+	cartUseCase   services.CartUseCase
+	walletUsecase services.WalletUseCase
 }
 
-func NewUserHandler(usecase services.UserUseCase, cartusecase services.CartUseCase) *UserHandler {
+func NewUserHandler(usecase services.UserUseCase, cartusecase services.CartUseCase, walletUsecase services.WalletUseCase) *UserHandler {
 	return &UserHandler{
-		userUseCase: usecase,
-		cartUseCase: cartusecase,
+		userUseCase:   usecase,
+		cartUseCase:   cartusecase,
+		walletUsecase: walletUsecase,
 	}
 }
 func (cr *UserHandler) UserSignup(c *gin.Context) {
@@ -85,6 +87,16 @@ func (cr *UserHandler) UserSignup(c *gin.Context) {
 			Errors:     err.Error(),
 		})
 		fmt.Println(err.Error())
+		return
+	}
+	err = cr.walletUsecase.CreateWallet(userData.Id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error creating wallet",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
 		return
 	}
 

@@ -65,6 +65,12 @@ func (un *Concurrency) Concurrency() {
 			`).Error; err != nil {
 				fmt.Println(err.Error())
 			}
+			if err := un.DB.Exec(`
+			 UPDATE orders SET order_status_id=2 WHERE order_date + INTERVAL '5 minutes'< NOW()
+			 AND order_status_id=1
+			 `).Error; err != nil {
+				fmt.Println(err)
+			}
 			un.mu.Unlock()
 
 			fmt.Println("worked")

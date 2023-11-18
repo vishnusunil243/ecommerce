@@ -4,11 +4,6 @@ import (
 	"time"
 )
 
-type PaymentType struct {
-	Id   uint   `gorm:"primaryKey;unique;not null"`
-	Type string `gorm:"unique;not null"`
-}
-
 type Orders struct {
 	Id              uint `gorm:"primaryKey;unique;not null"`
 	UserId          uint
@@ -17,9 +12,12 @@ type Orders struct {
 	PaymentTypeId   uint
 	PaymentType     PaymentType `gorm:"foreignKey:PaymentTypeId" json:"-"`
 	ShippingAddress uint
+	Address         Address `gorm:"foreignKey:ShippingAddress"`
 	OrderTotal      int
 	OrderStatusID   uint
 	OrderStatus     OrderStatus `gorm:"foreignKey:OrderStatusID" json:"-"`
+	PaymentStatusId uint
+	PaymentStatus   PaymentStatus `gorm:"foreignKey:PaymentStatusId" json:"-"`
 	CouponCode      string
 }
 

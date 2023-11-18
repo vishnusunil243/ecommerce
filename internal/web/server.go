@@ -12,7 +12,8 @@ type ServerHTTP struct {
 	engine *gin.Engine
 }
 
-func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.AdminHandler, productHandler *handler.ProductHandler, superadminHandler *handler.SuperAdminHandler, carrtHandler *handler.CartHandler) *ServerHTTP {
+func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.AdminHandler,
+	productHandler *handler.ProductHandler, superadminHandler *handler.SuperAdminHandler, carrtHandler *handler.CartHandler, orderHandler *handler.OrderHandler) *ServerHTTP {
 	engine := gin.New()
 	engine.Use(gin.Logger())
 	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
@@ -49,6 +50,19 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 				cart.GET("/", carrtHandler.ListCart)
 				cart.POST("/:product_item_id/addtocart", carrtHandler.AddToCart)
 				cart.DELETE("/:product_item_id/removefromcart", carrtHandler.RemoveFromCart)
+				order := cart.Group("/order")
+				{
+					order.GET("/", orderHandler.ListAllOrders)
+					order.GET("/:order_id", orderHandler.DisplayOrder)
+					order.POST("/orderall/:payment_id", orderHandler.OrderAll)
+					order.PATCH("/cancel/:order_id", orderHandler.UserCancelOrder)
+				}
+			}
+			order := user.Group("/order")
+			{
+				order.GET("/", orderHandler.ListAllOrders)
+				order.GET("/:order_id", orderHandler.DisplayOrder)
+				order.POST("/:order_id/return", orderHandler.ReturnOrder)
 			}
 		}
 		user.Use(middleware.UserIsBlocked)
@@ -98,6 +112,11 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 				productItem.GET("/", productHandler.ListAllProductItems)
 				productItem.GET("/:productItem_id", productHandler.DisplayProductItem)
 				productItem.DELETE("/:productItem_id/deleteimage", productHandler.DeleteImage)
+			}
+			order := admin.Group("/order")
+			{
+				order.GET("/", orderHandler.ListAllOrdersForAdmin)
+				order.PATCH("/update", orderHandler.UpdateOrderStatus)
 			}
 
 		}
