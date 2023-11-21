@@ -2,6 +2,7 @@ package repository
 
 import (
 	"fmt"
+	"strings"
 
 	"gorm.io/gorm"
 	"main.go/internal/common/helperStruct"
@@ -24,6 +25,12 @@ func NewProductRepo(DB *gorm.DB) interfaces.ProductRepository {
 // CreateCategory implements interfaces.ProductRepository.
 func (c *ProductDatabase) CreateCategory(category helperStruct.Category) (response.Category, error) {
 	var newcategory response.Category
+	var exists bool
+	selectQuery := `select exists(select 1 from categories where category_name=$1)`
+	c.DB.Raw(selectQuery, category.Name).Scan(&exists)
+	if exists {
+		return newcategory, fmt.Errorf("category already exists")
+	}
 	query := `INSERT INTO categories(category_name,created_at) VALUES($1,NOW()) RETURNING id,category_name`
 	err := c.DB.Raw(query, category.Name).Scan(&newcategory).Error
 	if err != nil {
@@ -82,18 +89,21 @@ func (c *ProductDatabase) DisplayCategory(id int) (response.Category, error) {
 // CreateBrand implements interfaces.ProductRepository.
 func (c *ProductDatabase) CreateBrand(brand helperStruct.Brand) (response.Brand, error) {
 	var newbrand response.Brand
-	var id int
-	selectQuery := `SELECT id FROM categories WHERE category_name=$1`
-	err := c.DB.Raw(selectQuery, brand.Category_name).Scan(&id).Error
-	if err != nil {
-		return newbrand, err
+	var exists bool
+	c.DB.Raw(`select exists(select 1 from brands where brandname=?)`, brand.Name).Scan(&exists)
+	if exists {
+		return newbrand, fmt.Errorf("brand is already present")
 	}
 	insertQuery := `INSERT INTO brands (brandname,description,category_id,created_at) VALUES ($1,$2,$3,NOW()) RETURNING id,brandname AS name,description,category_id`
-	err = c.DB.Raw(insertQuery, brand.Name, brand.Description, id).Scan(&newbrand).Error
+	err := c.DB.Raw(insertQuery, brand.Name, brand.Description, brand.Category_id).Scan(&newbrand).Error
 	if err != nil {
 		return newbrand, err
 	}
-	newbrand.Category_name = brand.Category_name
+	selectQuery := `SELECT category_name FROM categories WHERE id=?`
+	err = c.DB.Raw(selectQuery, brand.Category_id).Scan(&newbrand.Category_name).Error
+	if err != nil {
+		return newbrand, fmt.Errorf("error retrieving category_name")
+	}
 	return newbrand, nil
 
 }
@@ -101,15 +111,17 @@ func (c *ProductDatabase) CreateBrand(brand helperStruct.Brand) (response.Brand,
 // UpdateBrand implements interfaces.ProductRepository.
 func (c *ProductDatabase) UpdateBrand(brand helperStruct.Brand, id int) (response.Brand, error) {
 	var updatedBrand response.Brand
-	var categoryid int
-	selectQuery := `SELECT id FROM categories WHERE category_name=$1`
-	err := c.DB.Raw(selectQuery, brand.Category_name).Scan(&categoryid).Error
-	if err != nil {
-		return updatedBrand, err
-	}
+
 	updateQuery := `UPDATE brands SET brandname=$1,description=$2,category_id=$3,updated_at=NOW() WHERE id=$4 RETURNING id,brandname AS name,category_id,description`
-	err = c.DB.Raw(updateQuery, brand.Name, brand.Description, categoryid, id).Scan(&updatedBrand).Error
-	updatedBrand.Category_name = brand.Category_name
+	err := c.DB.Raw(updateQuery, brand.Name, brand.Description, brand.Category_id, id).Scan(&updatedBrand).Error
+	if err != nil {
+		return updatedBrand, fmt.Errorf("error updating brand")
+	}
+	selectQuery := `SELECT category_name FROM categories WHERE id=?`
+	err = c.DB.Raw(selectQuery, brand.Category_id).Scan(&updatedBrand.Category_name).Error
+	if err != nil {
+		return updatedBrand, fmt.Errorf("error retrieving category_name")
+	}
 	if updatedBrand.Id == 0 {
 		return updatedBrand, fmt.Errorf("no such brand to update")
 	}
@@ -119,7 +131,7 @@ func (c *ProductDatabase) UpdateBrand(brand helperStruct.Brand, id int) (respons
 // DeleteBrands implements interfaces.ProductRepository.
 func (c *ProductDatabase) DeleteBrand(id int) error {
 	var exists bool
-	c.DB.Raw(`select exists(select 1 from categories where id=?)`, id).Scan(&exists)
+	c.DB.Raw(`select exists(select 1 from brands where id=?)`, id).Scan(&exists)
 	if !exists {
 		return fmt.Errorf("no brand found with given id")
 	}
@@ -163,18 +175,24 @@ func (c *ProductDatabase) DisplayBrand(id int) (response.Brand, error) {
 func (c *ProductDatabase) AddProduct(product helperStruct.Product) (response.Product, error) {
 	var brand response.Brand
 	var newProduct response.Product
+	var exists bool
+	c.DB.Raw(`select exists(select 1 from products where product_name=?)`, product.Name).Scan(&exists)
+	if exists {
+		return newProduct, fmt.Errorf(" product is already present")
+	}
 	err := c.DB.Raw(`
-    SELECT b.*, c.category_name
+    SELECT b.brandname AS name,b.category_id, c.category_name
     FROM brands b
     JOIN categories c ON b.category_id = c.id
-    WHERE b.brandname = ?
+    WHERE b.id = ?
 `, product.Brand).Scan(&brand).Error
+	fmt.Println(brand.Name)
 	if err != nil {
 		return newProduct, err
 	}
 	insertQuery := `INSERT INTO products (product_name,description,brand,category_id,created_at) VALUES ($1,$2,$3,$4,NOW())
 	RETURNING id,product_name AS name,description,brand,category_id`
-	err = c.DB.Raw(insertQuery, product.Name, product.Description, product.Brand, brand.Category_id).Scan(&newProduct).Error
+	err = c.DB.Raw(insertQuery, product.Name, product.Description, brand.Name, brand.Category_id).Scan(&newProduct).Error
 	if err != nil {
 		return newProduct, err
 	}
@@ -195,7 +213,7 @@ func (c *ProductDatabase) UpdateProduct(product helperStruct.Product, id int) (r
 	selectQuery := `SELECT b.*, c.category_name
 	                FROM brands b
 	                JOIN categories c ON b.category_id = c.id
-	                WHERE b.brandname = $1`
+	                WHERE b.id = $1`
 
 	err := c.DB.Raw(selectQuery, product.Brand).Scan(&brand).Error
 	if err != nil {
@@ -204,7 +222,7 @@ func (c *ProductDatabase) UpdateProduct(product helperStruct.Product, id int) (r
 
 	updateQuery := `UPDATE products SET product_name=$1,description=$2,brand=$3,category_id=$4,updated_at=NOW() WHERE id=$5
 	               RETURNING id,product_name AS name,description,brand,category_id`
-	err = c.DB.Raw(updateQuery, product.Name, product.Description, product.Brand, brand.Category_id, id).Scan(&updatedProduct).Error
+	err = c.DB.Raw(updateQuery, product.Name, product.Description, brand.Name, brand.Category_id, id).Scan(&updatedProduct).Error
 	if err != nil {
 		return updatedProduct, err
 	}
@@ -260,6 +278,18 @@ func (c *ProductDatabase) ListAllProducts(queryParams helperStruct.QueryParams) 
 	getProductDetails := `SELECT products.product_name AS name,products.description,products.id,brand, categories.category_name
 	FROM products
 	JOIN categories ON products.category_id = categories.id`
+	if queryParams.Query != "" && queryParams.Filter != "" {
+		getProductDetails = fmt.Sprintf("%s WHERE LOWER(%s) LIKE '%%%s%%'", getProductDetails, queryParams.Filter, strings.ToLower(queryParams.Query))
+	}
+	if queryParams.SortBy != "" {
+		if queryParams.SortDesc {
+			getProductDetails = fmt.Sprintf("%s ORDER BY %s DESC", getProductDetails, queryParams.SortBy)
+		} else {
+			getProductDetails = fmt.Sprintf("%s ORDER BY %s ASC", getProductDetails, queryParams.SortBy)
+		}
+	} else {
+		getProductDetails = fmt.Sprintf("%s ORDER BY products.created_at DESC", getProductDetails)
+	}
 	if queryParams.Limit != 0 && queryParams.Page != 0 {
 		getProductDetails = fmt.Sprintf("%s LIMIT %d OFFSET %d", getProductDetails, queryParams.Limit, (queryParams.Page-1)*queryParams.Limit)
 	}
@@ -290,6 +320,14 @@ func (c *ProductDatabase) DisplayProduct(id int) (response.Product, error) {
 // AddProductItem implements interfaces.ProductRepository.
 func (c *ProductDatabase) AddProductItem(productItem helperStruct.ProductItem) (response.ProductItem, error) {
 	var newProductItem response.ProductItem
+	if productItem.Price < 0 {
+		return newProductItem, fmt.Errorf("price can't have a negative value")
+	}
+	var exists bool
+	c.DB.Raw(`SELECT EXISTS(SELECT 1 FROM product_items WHERE product_id=?)`, productItem.Product_id).Scan(&exists)
+	if exists {
+		return newProductItem, fmt.Errorf("product_item already exists")
+	}
 	insertQuery := `INSERT INTO product_items (id,product_id,sku,qty_in_stock,color,ram,battery,screen_size,storage,price,graphic_processor,created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW()) 
 	RETURNING id,sku,color,qty_in_stock,battery,ram,screen_size,storage,price,graphic_processor`
 	err := c.DB.Raw(insertQuery, productItem.Product_id, productItem.Product_id, productItem.Sku, productItem.Qty, productItem.Color, productItem.Ram, productItem.Battery, productItem.Screen_size, productItem.Storage, productItem.Price, productItem.Graphic_Processor).Scan(&newProductItem).Error
@@ -333,11 +371,24 @@ func (c *ProductDatabase) UpdateProductItem(id int, productItem helperStruct.Pro
 func (c *ProductDatabase) ListAllProductItems(queryParams helperStruct.QueryParams) ([]response.ProductItem, error) {
 	var productItems []response.ProductItem
 	getProductItemDetails := `
-    SELECT product_items.*, products.description,products.product_name,products.brand, categories.category_name
+    SELECT product_items.*, products.description,products.product_name,products.brand,image_items.image,categories.category_name
     FROM product_items
     JOIN products ON product_items.product_id = products.id
     JOIN categories ON products.category_id = categories.id
+	LEFT JOIN image_items ON product_items.id=image_items.product_item_id
 `
+	if queryParams.Query != "" && queryParams.Filter != "" {
+		getProductItemDetails = fmt.Sprintf("%s WHERE LOWER(%s) LIKE '%%%s%%'", getProductItemDetails, queryParams.Filter, strings.ToLower(queryParams.Query))
+	}
+	if queryParams.SortBy != "" {
+		if queryParams.SortDesc {
+			getProductItemDetails = fmt.Sprintf("%s ORDER BY %s DESC", getProductItemDetails, queryParams.SortBy)
+		} else {
+			getProductItemDetails = fmt.Sprintf("%s ORDER BY %s ASC", getProductItemDetails, queryParams.SortBy)
+		}
+	} else {
+		getProductItemDetails = fmt.Sprintf("%s ORDER BY product_items.created_at DESC", getProductItemDetails)
+	}
 	if queryParams.Limit != 0 && queryParams.Page != 0 {
 		getProductItemDetails = fmt.Sprintf("%s LIMIT %d OFFSET %d", getProductItemDetails, queryParams.Limit, (queryParams.Page-1)*queryParams.Limit)
 	}
@@ -403,10 +454,18 @@ func (c *ProductDatabase) DisplayProductItem(id int) (response.ProductItem, erro
 	return productItem, err
 }
 
-// UploadImage implements interfaces.ProductRepository.
-func (c *ProductDatabase) UploadImage(Image helperStruct.ImageHelper) (response.ImageResponse, error) {
-	var image response.ImageResponse
-	err := c.DB.Raw(`INSERT INTO images(product_item_id,image) VALUES ($1,$2) RETURNING image,product_item_id AS id`, Image.ProductItemId, Image.ImageData).Scan(&image).Error
+// // UploadImage implements interfaces.ProductRepository.
+// func (c *ProductDatabase) UploadImage(Image helperStruct.ImageHelper) (response.ImageResponse, error) {
+// 	var image response.ImageResponse
+// 	err := c.DB.Raw(`INSERT INTO images(product_item_id,image) VALUES ($1,$2) RETURNING image,product_item_id AS id`, Image.ProductItemId, Image.ImageData).Scan(&image).Error
+// 	return image, err
+// }
+// -------------------------- Uploaded-Model --------------------------//
+
+func (c *ProductDatabase) UploadImage(filepath string, productId int) (response.Image, error) {
+	var image response.Image
+	uploadImage := `INSERT INTO image_items (product_item_id,image)VALUES($1,$2) RETURNING product_item_id AS id,image`
+	err := c.DB.Raw(uploadImage, productId, filepath).Scan(&image).Error
 	return image, err
 }
 
@@ -414,11 +473,11 @@ func (c *ProductDatabase) UploadImage(Image helperStruct.ImageHelper) (response.
 func (c *ProductDatabase) DeleteImage(id int) error {
 	var exists bool
 
-	c.DB.Raw(`SELECT exists (select  1 from images WHERE product_item_id=?)`, id).Scan(&exists)
+	c.DB.Raw(`SELECT exists (select  1 from image_items WHERE product_item_id=?)`, id).Scan(&exists)
 	if !exists {
 		return fmt.Errorf("no image found for the given productitem")
 	}
 
-	err := c.DB.Exec(`DELETE FROM images WHERE product_item_id=?`, id).Error
+	err := c.DB.Exec(`DELETE FROM image_items WHERE product_item_id=?`, id).Error
 	return err
 }

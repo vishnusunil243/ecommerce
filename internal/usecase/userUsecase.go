@@ -69,9 +69,15 @@ func (cr *UserUseCase) AddAdress(id int, address helperStruct.Address) (response
 }
 
 // UpdateAdress implements interfaces.UserUseCase.
-func (cr *UserUseCase) UpdateAddress(addressId int, address helperStruct.Address) (response.Address, error) {
-	updatedAdress, err := cr.userRepo.UpdateAddress(addressId, address)
+func (cr *UserUseCase) UpdateAddress(userId, addressId int, address helperStruct.Address) (response.Address, error) {
+	updatedAdress, err := cr.userRepo.UpdateAddress(userId, addressId, address)
 	return updatedAdress, err
+}
+
+// DeleteAddress implements interfaces.UserUseCase.
+func (cr *UserUseCase) DeleteAddress(addressId int) error {
+	err := cr.userRepo.DeleteAddress(addressId)
+	return err
 }
 
 // ViewUserProfile implements interfaces.UserUseCase.
@@ -118,4 +124,10 @@ func (cr *UserUseCase) ForgotPassword(newpassword helperStruct.ForgotPassword) e
 	newpassword.NewPassword = string(hash)
 	err = cr.userRepo.ForgotPassword(newpassword)
 	return err
+}
+
+// ListAllAddresses implements interfaces.UserUseCase.
+func (cr *UserUseCase) ListAllAddresses(userId int) ([]response.Address, error) {
+	addresses, err := cr.userRepo.ListAllAddresses(userId)
+	return addresses, err
 }

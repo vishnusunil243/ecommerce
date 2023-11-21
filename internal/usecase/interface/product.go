@@ -25,7 +25,8 @@ type ProductUsecase interface {
 	UpdateProductItem(id int, productItem helperStruct.ProductItem) (response.ProductItem, error)
 	ListAllProductItems(queryParams helperStruct.QueryParams) ([]response.ProductItem, error)
 	DeleteProductItem(id int) error
-	ImageUpload(image helperStruct.ImageHelper) (response.ImageResponse, error)
+	// ImageUpload(image helperStruct.ImageHelper) (response.ImageResponse, error)
+	UploadImage(filepath string, productid int) (response.Image, error)
 	DeleteImage(id int) error
 	DisplayProductItem(id int) (response.ProductItem, error)
 }

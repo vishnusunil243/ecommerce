@@ -53,3 +53,9 @@ type Images struct {
 	ProductItem   ProductItem `gorm:"foreignKey:ProductItemId"`
 	Image         []byte
 }
+type Image_items struct {
+	Id            uint `gorm:"primaryKey;unique;not null"`
+	ProductItemId uint
+	ProductItem   ProductItem `gorm:"foreignKey:ProductItemId"`
+	Image         string
+}

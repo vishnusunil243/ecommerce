@@ -125,8 +125,9 @@ func (c *orderDatabase) OrderAll(id int, paymentTypeid int) (response.OrderRespo
 		return response.OrderResponse{}, err
 	}
 	var orderResponse response.OrderResponse
-	err = tx.Raw(`SELECT orders.*,p.type AS payment_type,o.status AS order_status,addresses.* FROM orders JOIN payment_types p ON  
+	err = tx.Raw(`SELECT orders.*,p.type AS payment_type,o.status AS order_status,addresses.*,payment_statuses.status AS payment_status FROM orders JOIN payment_types p ON  
 	p.id=orders.payment_type_id  JOIN order_statuses o ON orders.order_status_id=o.id
+	JOIN payment_statuses ON payment_statuses.id=orders.payment_status_id
 	JOIN addresses ON orders.shipping_address=addresses.id AND is_default=true  WHERE user_id=$1 AND orders.id=$2`, order.UserId, order.Id).Scan(&orderResponse).Error
 	if err != nil {
 		return response.OrderResponse{}, fmt.Errorf("error retrieving order information")
@@ -167,7 +168,7 @@ func (o *orderDatabase) UserCancelOrder(orderId int, userId int) error {
 		tx.Rollback()
 		return err
 	}
-	cancelOrder := `UPDATE orders SET order_status_id=5 WHERE id=$1 AND user_id=$2`
+	cancelOrder := `UPDATE orders SET order_status_id=5,payment_status_id=3 WHERE id=$1 AND user_id=$2`
 	err = tx.Exec(cancelOrder, orderId, userId).Error
 	if err != nil {
 		tx.Rollback()
@@ -184,9 +185,11 @@ func (o *orderDatabase) UserCancelOrder(orderId int, userId int) error {
 // ListAllOrders implements interfaces.OrderRepository.
 func (o *orderDatabase) ListAllOrders(userId int) ([]response.OrderResponse, error) {
 	var orders []response.OrderResponse
-	err := o.DB.Raw(`SELECT orders.*,p.type AS payment_type,o.status AS order_status,addresses.* FROM orders JOIN payment_types p ON  
+	err := o.DB.Raw(`SELECT orders.*,p.type AS payment_type,o.status AS order_status,addresses.*,payment_statuses.status AS payment_status FROM orders JOIN payment_types p ON  
 	p.id=orders.payment_type_id  JOIN order_statuses o ON orders.order_status_id=o.id 
-	JOIN addresses ON orders.shipping_address=addresses.id AND addresses.is_default=true WHERE user_id=?`, userId).
+	JOIN addresses ON orders.shipping_address=addresses.id AND addresses.is_default=true 
+	JOIN payment_statuses ON orders.payment_status_id=payment_statuses.id
+	WHERE user_id=?`, userId).
 		Scan(&orders).Error
 	return orders, err
 }
@@ -194,9 +197,11 @@ func (o *orderDatabase) ListAllOrders(userId int) ([]response.OrderResponse, err
 // DisplayOrder implements interfaces.OrderRepository.
 func (o *orderDatabase) DisplayOrder(userId int, orderId int) (response.OrderResponse, error) {
 	var order response.OrderResponse
-	err := o.DB.Raw(`SELECT orders.*,p.type AS payment_type,o.status AS order_status,addresses.* FROM orders JOIN payment_types p ON  
+	err := o.DB.Raw(`SELECT orders.*,p.type AS payment_type,o.status AS order_status,addresses.*,payment_statuses.status AS payment_status FROM orders JOIN payment_types p ON  
 	p.id=orders.payment_type_id  JOIN order_statuses o ON orders.order_status_id=o.id
-	JOIN addresses ON orders.shipping_address=addresses.id AND is_default=true  WHERE user_id=$1 AND orders.id=$2`, userId, orderId).Scan(&order).Error
+	JOIN addresses ON orders.shipping_address=addresses.id AND is_default=true  
+	JOIN payment_statuses ON orders.payment_status_id=payment_statuses.id
+	WHERE user_id=$1 AND orders.id=$2`, userId, orderId).Scan(&order).Error
 	return order, err
 }
 
@@ -217,7 +222,7 @@ func (o *orderDatabase) ReturnOrder(userId int, orderId int) (response.ReturnOrd
 		tx.Rollback()
 		return response.ReturnOrder{}, fmt.Errorf("order is not yet delivered")
 	}
-	updateOrderStatus := `UPDATE orders SET order_status_id=6 WHERE id=$1 AND user_id=$2`
+	updateOrderStatus := `UPDATE orders SET order_status_id=6,payment_status_id=4 WHERE id=$1 AND user_id=$2`
 	err = tx.Exec(updateOrderStatus, orderId, userId).Error
 	if err != nil {
 		tx.Rollback()

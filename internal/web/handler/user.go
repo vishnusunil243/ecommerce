@@ -211,7 +211,17 @@ func (u *UserHandler) UpdateAddress(c *gin.Context) {
 		})
 		return
 	}
-	updatedAddress, err := u.userUseCase.UpdateAddress(id, address)
+	userId, err := handlerUtil.GetUserIdFromContext(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error retrieving userId",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	updatedAddress, err := u.userUseCase.UpdateAddress(userId, id, address)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Response{
 			StatusCode: 400,
@@ -228,6 +238,35 @@ func (u *UserHandler) UpdateAddress(c *gin.Context) {
 		Errors:     nil,
 	})
 
+}
+func (u *UserHandler) DeleteAddress(c *gin.Context) {
+	paramId := c.Param("address_id")
+	addressId, err := strconv.Atoi(paramId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error parsing address id",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	err = u.userUseCase.DeleteAddress(addressId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error deleting address",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "address deleted successfully",
+		Data:       nil,
+		Errors:     nil,
+	})
 }
 func (u *UserHandler) ViewUserProfile(c *gin.Context) {
 	Id, err := handlerUtil.GetUserIdFromContext(c)
@@ -257,6 +296,34 @@ func (u *UserHandler) ViewUserProfile(c *gin.Context) {
 		Errors:     nil,
 	})
 
+}
+func (u *UserHandler) ListAllAddresses(c *gin.Context) {
+	userId, err := handlerUtil.GetUserIdFromContext(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error retrieving userId",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	addresses, err := u.userUseCase.ListAllAddresses(userId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error displaying addresses",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "addresses displayed successfully",
+		Data:       addresses,
+		Errors:     nil,
+	})
 }
 func (u *UserHandler) UpdateMobile(c *gin.Context) {
 	var mobile helperStruct.UpdateMobile

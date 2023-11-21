@@ -10,7 +10,7 @@ import (
 	"main.go/internal/web/handler"
 )
 
-func InitializeAPI1(cfg config.Config) (*http.ServerHTTP, error) {
+func InitializeAP1(cfg config.Config) (*http.ServerHTTP, error) {
 	wire.Build(
 		db.ConnectDatabase,
 		repository.NewWalletRepo,
@@ -33,6 +33,7 @@ func InitializeAPI1(cfg config.Config) (*http.ServerHTTP, error) {
 		handler.NewSuperAdminHandler,
 		handler.NewCartHandler,
 		handler.NewOrderHandler,
+		handler.NewWalletHandler,
 		http.NewServerHTTP,
 	)
 	return &http.ServerHTTP{}, nil

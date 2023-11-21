@@ -10,7 +10,9 @@ type UserRepository interface {
 	UserSignUp(user helperStruct.UserReq) (response.UserData, error)
 	UserLogin(email string) (domain.Users, error)
 	AddAdress(id int, address helperStruct.Address) (response.Address, error)
-	UpdateAddress(addressId int, addess helperStruct.Address) (response.Address, error)
+	UpdateAddress(userId, addressId int, addess helperStruct.Address) (response.Address, error)
+	DeleteAddress(addressId int) error
+	ListAllAddresses(userId int) ([]response.Address, error)
 	ViewUserProfile(id int) (response.UserProfile, error)
 	UpdateMobile(id int, mobile string) (response.UserProfile, error)
 	RetrieveUserInformation(id int) (domain.Users, error)

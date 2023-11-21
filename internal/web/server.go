@@ -13,7 +13,8 @@ type ServerHTTP struct {
 }
 
 func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.AdminHandler,
-	productHandler *handler.ProductHandler, superadminHandler *handler.SuperAdminHandler, carrtHandler *handler.CartHandler, orderHandler *handler.OrderHandler) *ServerHTTP {
+	productHandler *handler.ProductHandler, superadminHandler *handler.SuperAdminHandler, carrtHandler *handler.CartHandler,
+	orderHandler *handler.OrderHandler, walletHandler *handler.WalletHandler) *ServerHTTP {
 	engine := gin.New()
 	engine.Use(gin.Logger())
 	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
@@ -41,7 +42,9 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 				userProfile.PATCH("/changepassword", userHandler.ChangePassword)
 				address := userProfile.Group("/address")
 				{
+					address.GET("/", userHandler.ListAllAddresses)
 					address.POST("/add", userHandler.AddAddress)
+					address.DELETE("/:address_id/delete", userHandler.DeleteAddress)
 					address.PATCH("/:address_id/edit", userHandler.UpdateAddress)
 				}
 			}
@@ -63,6 +66,10 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 				order.GET("/", orderHandler.ListAllOrders)
 				order.GET("/:order_id", orderHandler.DisplayOrder)
 				order.POST("/:order_id/return", orderHandler.ReturnOrder)
+			}
+			wallet := user.Group("/wallet")
+			{
+				wallet.GET("/", walletHandler.DisplayWallet)
 			}
 		}
 		user.Use(middleware.UserIsBlocked)

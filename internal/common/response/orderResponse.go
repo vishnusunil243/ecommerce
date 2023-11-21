@@ -10,6 +10,7 @@ type OrderResponse struct {
 	OrderTotal    int
 	OrderStatusID uint
 	OrderStatus   string
+	PaymentStatus string
 	CouponCode    string
 }
 type ReturnOrder struct {

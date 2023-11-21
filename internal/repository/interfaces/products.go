@@ -24,7 +24,8 @@ type ProductRepository interface {
 	AddProductItem(productItem helperStruct.ProductItem) (response.ProductItem, error)
 	UpdateProductItem(id int, productItem helperStruct.ProductItem) (response.ProductItem, error)
 	ListAllProductItems(queryParams helperStruct.QueryParams) ([]response.ProductItem, error)
-	UploadImage(Image helperStruct.ImageHelper) (response.ImageResponse, error)
+	// UploadImage(Image helperStruct.ImageHelper) (response.ImageResponse, error)
+	UploadImage(filepath string, productid int) (response.Image, error)
 	DeleteImage(id int) error
 	DeleteProductItem(id int) error
 	DisplayProductItem(id int) (response.ProductItem, error)

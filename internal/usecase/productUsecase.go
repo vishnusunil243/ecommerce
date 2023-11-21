@@ -1,8 +1,6 @@
 package usecase
 
 import (
-	"io"
-
 	"main.go/internal/common/helperStruct"
 	"main.go/internal/common/response"
 	"main.go/internal/repository/interfaces"
@@ -139,18 +137,24 @@ func (cr *ProductUsecase) DisplayProductItem(id int) (response.ProductItem, erro
 	return productItem, err
 }
 
-// ImageUpload implements interfaces.ProductUsecase.
-func (cr *ProductUsecase) ImageUpload(image helperStruct.ImageHelper) (response.ImageResponse, error) {
+// // ImageUpload implements interfaces.ProductUsecase.
+// func (cr *ProductUsecase) ImageUpload(image helperStruct.ImageHelper) (response.ImageResponse, error) {
 
-	// Read the file content
-	fileBytes, err := io.ReadAll(image.ImageFile)
-	if err != nil {
-		return response.ImageResponse{}, err
-	}
-	image.ImageData = fileBytes
-	newImage, err := cr.productRepo.UploadImage(image)
-	return newImage, err
+// 	// Read the file content
+// 	fileBytes, err := io.ReadAll(image.ImageFile)
+// 	if err != nil {
+// 		return response.ImageResponse{}, err
+// 	}
+// 	image.ImageData = fileBytes
+// 	newImage, err := cr.productRepo.UploadImage(image)
+// 	return newImage, err
 
+// }
+// -------------------------- Upload-Image --------------------------//
+
+func (c *ProductUsecase) UploadImage(filepath string, productId int) (response.Image, error) {
+	image, err := c.productRepo.UploadImage(filepath, productId)
+	return image, err
 }
 
 // DeleteImage implements interfaces.ProductUsecase.
