@@ -13,4 +13,5 @@ type OrderRepository interface {
 	ReturnOrder(userId, orderId int) (response.ReturnOrder, error)
 	UpdateOrderStatus(updateOrder helperStruct.UpdateOrder) (response.AdminOrder, error)
 	ListAllOrdersForAdmin(queryParams helperStruct.QueryParams) ([]response.AdminOrder, error)
+	DisplayOrderForAdmin(orderId int) (response.AdminOrder, error)
 }

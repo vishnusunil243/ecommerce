@@ -270,3 +270,33 @@ func (o *OrderHandler) ListAllOrdersForAdmin(c *gin.Context) {
 		Errors:     nil,
 	})
 }
+func (o *OrderHandler) DisplayOrderForAdmin(c *gin.Context) {
+	paramId := c.Param("order_id")
+	orderId, err := strconv.Atoi(paramId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error parsing order id",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	order, err := o.orderUsecase.DisplayOrderForAdmin(orderId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error displaying order",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "order displayed successfully",
+		Data:       order,
+		Errors:     nil,
+	})
+
+}

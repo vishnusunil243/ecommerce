@@ -123,6 +123,7 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 			order := admin.Group("/order")
 			{
 				order.GET("/", orderHandler.ListAllOrdersForAdmin)
+				order.GET("/:order_id", orderHandler.DisplayOrderForAdmin)
 				order.PATCH("/update", orderHandler.UpdateOrderStatus)
 			}
 

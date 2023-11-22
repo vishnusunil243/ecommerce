@@ -219,6 +219,11 @@ func (o *orderDatabase) ListAllOrders(userId int, queryParams helperStruct.Query
 
 // DisplayOrder implements interfaces.OrderRepository.
 func (o *orderDatabase) DisplayOrder(userId int, orderId int) (response.OrderResponse, error) {
+	var exists bool
+	o.DB.Raw(`SELECT EXISTS (select 1 exists from orders where id=$1 and user_id=$2)`, orderId, userId).Scan(&exists)
+	if !exists {
+		return response.OrderResponse{}, fmt.Errorf("no such order")
+	}
 	var order response.OrderResponse
 	err := o.DB.Raw(`SELECT orders.*,p.type AS payment_type,o.status AS order_status,addresses.*,payment_statuses.status AS payment_status FROM orders JOIN payment_types p ON  
 	p.id=orders.payment_type_id  JOIN order_statuses o ON orders.order_status_id=o.id
@@ -275,6 +280,11 @@ func (o *orderDatabase) ReturnOrder(userId int, orderId int) (response.ReturnOrd
 
 // UpdateOrderStatus implements interfaces.OrderRepository.
 func (o *orderDatabase) UpdateOrderStatus(updateOrder helperStruct.UpdateOrder) (response.AdminOrder, error) {
+	var exists bool
+	o.DB.Raw(`SELECT EXISTS (select 1 exists from orders where id=?)`, updateOrder.OrderId).Scan(&exists)
+	if !exists {
+		return response.AdminOrder{}, fmt.Errorf("no such order to update")
+	}
 	if updateOrder.OrderStatusID != 4 {
 		updateOrderStatus := `UPDATE orders SET order_status_id=$1 WHERE id=$2 `
 		err := o.DB.Exec(updateOrderStatus, updateOrder.OrderStatusID, updateOrder.OrderId).Error
@@ -329,4 +339,20 @@ func (o *orderDatabase) ListAllOrdersForAdmin(queryParams helperStruct.QueryPara
 	}
 	err := o.DB.Raw(findOrders).Scan(&orders).Error
 	return orders, err
+}
+
+// DisplayOrderForAdmin implements interfaces.OrderRepository.
+func (o *orderDatabase) DisplayOrderForAdmin(orderId int) (response.AdminOrder, error) {
+	var exists bool
+	o.DB.Raw(`SELECT EXISTS (select 1 exists from orders where id=$1)`, orderId).Scan(&exists)
+	if !exists {
+		return response.AdminOrder{}, fmt.Errorf("no such order")
+	}
+	var order response.AdminOrder
+	err := o.DB.Raw(`SELECT orders.*,p.type AS payment_type,o.status AS order_status,addresses.*,payment_statuses.status AS payment_status FROM orders JOIN payment_types p ON  
+	p.id=orders.payment_type_id  JOIN order_statuses o ON orders.order_status_id=o.id
+	JOIN addresses ON orders.shipping_address=addresses.id AND is_default=true  
+	JOIN payment_statuses ON orders.payment_status_id=payment_statuses.id
+	WHERE  orders.id=$1`, orderId).Scan(&order).Error
+	return order, err
 }

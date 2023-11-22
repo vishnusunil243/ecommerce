@@ -58,3 +58,9 @@ func (o *OrderUseCase) ListAllOrdersForAdmin(queryParams helperStruct.QueryParam
 	orders, err := o.orderRepo.ListAllOrdersForAdmin(queryParams)
 	return orders, err
 }
+
+// DisplayOrderForAdmin implements interfaces.OrderUseCase.
+func (o *OrderUseCase) DisplayOrderForAdmin(orderId int) (response.AdminOrder, error) {
+	order, err := o.orderRepo.DisplayOrderForAdmin(orderId)
+	return order, err
+}

@@ -323,6 +323,15 @@ func (c *ProductDatabase) AddProductItem(productItem helperStruct.ProductItem) (
 	if productItem.Price < 0 {
 		return newProductItem, fmt.Errorf("price can't have a negative value")
 	}
+	if productItem.Ram < 0 {
+		return newProductItem, fmt.Errorf("ram can't have a negative value")
+	}
+	if productItem.Qty < 0 {
+		return newProductItem, fmt.Errorf("the item can't have a negative quantity")
+	}
+	if productItem.Storage < 0 {
+		return newProductItem, fmt.Errorf("storage can't have a negative value")
+	}
 	var exists bool
 	c.DB.Raw(`SELECT EXISTS(SELECT 1 FROM product_items WHERE product_id=?)`, productItem.Product_id).Scan(&exists)
 	if exists {
