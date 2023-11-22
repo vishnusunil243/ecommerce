@@ -251,7 +251,16 @@ func (u *UserHandler) DeleteAddress(c *gin.Context) {
 		})
 		return
 	}
-	err = u.userUseCase.DeleteAddress(addressId)
+	userId, err := handlerUtil.GetUserIdFromContext(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error retrieving userId",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+	}
+	err = u.userUseCase.DeleteAddress(addressId, userId)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Response{
 			StatusCode: 400,

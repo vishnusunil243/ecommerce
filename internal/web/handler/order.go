@@ -99,6 +99,15 @@ func (o *OrderHandler) UserCancelOrder(c *gin.Context) {
 	})
 }
 func (o *OrderHandler) ListAllOrders(c *gin.Context) {
+	var queryParams helperStruct.QueryParams
+	queryParams.Limit, _ = strconv.Atoi(c.Query("limit"))
+	queryParams.Page, _ = strconv.Atoi(c.Query("page"))
+	queryParams.SortBy = c.Query("sort_by")
+	queryParams.Filter = c.Query("filter")
+	queryParams.Query = c.Query("query")
+	if c.Query("sort_desc") != "" {
+		queryParams.SortDesc = true
+	}
 	userId, err := handlerUtil.GetUserIdFromContext(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Response{
@@ -109,7 +118,7 @@ func (o *OrderHandler) ListAllOrders(c *gin.Context) {
 		})
 		return
 	}
-	orders, err := o.orderUsecase.ListAllOrders(userId)
+	orders, err := o.orderUsecase.ListAllOrders(userId, queryParams)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Response{
 			StatusCode: 400,
@@ -235,7 +244,16 @@ func (o *OrderHandler) UpdateOrderStatus(c *gin.Context) {
 
 }
 func (o *OrderHandler) ListAllOrdersForAdmin(c *gin.Context) {
-	orders, err := o.orderUsecase.ListAllOrdersForAdmin()
+	var queryParams helperStruct.QueryParams
+	queryParams.Limit, _ = strconv.Atoi(c.Query("limit"))
+	queryParams.Page, _ = strconv.Atoi(c.Query("page"))
+	queryParams.SortBy = c.Query("sort_by")
+	queryParams.Filter = c.Query("filter")
+	queryParams.Query = c.Query("query")
+	if c.Query("sort_desc") != "" {
+		queryParams.SortDesc = true
+	}
+	orders, err := o.orderUsecase.ListAllOrdersForAdmin(queryParams)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Response{
 			StatusCode: 400,

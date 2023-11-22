@@ -75,8 +75,8 @@ func (cr *UserUseCase) UpdateAddress(userId, addressId int, address helperStruct
 }
 
 // DeleteAddress implements interfaces.UserUseCase.
-func (cr *UserUseCase) DeleteAddress(addressId int) error {
-	err := cr.userRepo.DeleteAddress(addressId)
+func (cr *UserUseCase) DeleteAddress(addressId, userId int) error {
+	err := cr.userRepo.DeleteAddress(addressId, userId)
 	return err
 }
 

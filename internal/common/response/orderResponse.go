@@ -11,7 +11,7 @@ type OrderResponse struct {
 	OrderStatusID uint
 	OrderStatus   string
 	PaymentStatus string
-	CouponCode    string
+	CouponCode    string `json:"coupon,omitempty"`
 }
 type ReturnOrder struct {
 	OrderDate     time.Time

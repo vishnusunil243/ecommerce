@@ -10,7 +10,7 @@ type UserUseCase interface {
 	UserLogin(user helperStruct.LoginReq) (string, error)
 	AddAdress(id int, address helperStruct.Address) (response.Address, error)
 	UpdateAddress(userId, addressId int, address helperStruct.Address) (response.Address, error)
-	DeleteAddress(addressId int) error
+	DeleteAddress(addressId, userId int) error
 	ListAllAddresses(userId int) ([]response.Address, error)
 	ViewUserProfile(id int) (response.UserProfile, error)
 	UpdateMobile(id int, mobile string) (response.UserProfile, error)

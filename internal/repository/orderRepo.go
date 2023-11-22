@@ -2,6 +2,7 @@ package repository
 
 import (
 	"fmt"
+	"strings"
 
 	"gorm.io/gorm"
 	"main.go/internal/common/helperStruct"
@@ -183,13 +184,35 @@ func (o *orderDatabase) UserCancelOrder(orderId int, userId int) error {
 }
 
 // ListAllOrders implements interfaces.OrderRepository.
-func (o *orderDatabase) ListAllOrders(userId int) ([]response.OrderResponse, error) {
+func (o *orderDatabase) ListAllOrders(userId int, queryParams helperStruct.QueryParams) ([]response.OrderResponse, error) {
 	var orders []response.OrderResponse
-	err := o.DB.Raw(`SELECT orders.*,p.type AS payment_type,o.status AS order_status,addresses.*,payment_statuses.status AS payment_status FROM orders JOIN payment_types p ON  
+	findOrders := `SELECT orders.*,p.type AS payment_type,o.status AS order_status,addresses.*,payment_statuses.status AS payment_status FROM orders JOIN payment_types p ON  
 	p.id=orders.payment_type_id  JOIN order_statuses o ON orders.order_status_id=o.id 
 	JOIN addresses ON orders.shipping_address=addresses.id AND addresses.is_default=true 
 	JOIN payment_statuses ON orders.payment_status_id=payment_statuses.id
-	WHERE user_id=?`, userId).
+	WHERE user_id=?`
+	if queryParams.Query != "" && queryParams.Filter != "" {
+		findOrders = fmt.Sprintf("%s WHERE LOWER(%s) LIKE '%%%s%%'", findOrders, queryParams.Filter, strings.ToLower(queryParams.Query))
+	}
+	if queryParams.SortBy != "" {
+		if queryParams.SortDesc {
+			findOrders = fmt.Sprintf("%s ORDER BY %s DESC", findOrders, queryParams.SortBy)
+		} else {
+			findOrders = fmt.Sprintf("%s ORDER BY %s ASC", findOrders, queryParams.SortBy)
+		}
+	} else {
+		findOrders = fmt.Sprintf("%s ORDER BY orders.order_date DESC", findOrders)
+	}
+	if queryParams.Limit != 0 && queryParams.Page != 0 {
+		findOrders = fmt.Sprintf("%s LIMIT %d OFFSET %d", findOrders, queryParams.Limit, (queryParams.Page-1)*queryParams.Limit)
+	}
+	if queryParams.Limit == 0 || queryParams.Page == 0 {
+		findOrders = fmt.Sprintf("%s LIMIT 10 OFFSET 0", findOrders)
+	}
+	if queryParams.Limit == 0 || queryParams.Page == 0 {
+		findOrders = fmt.Sprintf("%s LIMIT 10 OFFSET 0", findOrders)
+	}
+	err := o.DB.Raw(findOrders, userId).
 		Scan(&orders).Error
 	return orders, err
 }
@@ -276,13 +299,34 @@ func (o *orderDatabase) UpdateOrderStatus(updateOrder helperStruct.UpdateOrder) 
 }
 
 // ListAllOrdersForAdmin implements interfaces.OrderRepository.
-func (o *orderDatabase) ListAllOrdersForAdmin() ([]response.AdminOrder, error) {
+func (o *orderDatabase) ListAllOrdersForAdmin(queryParams helperStruct.QueryParams) ([]response.AdminOrder, error) {
 	var orders []response.AdminOrder
 	findOrders := `SELECT orders.id AS order_id,orders.payment_type_id,order_statuses.status AS order_status,payment_types.type AS payment_type,payment_statuses.status AS payment_status
 	FROM orders JOIN order_statuses ON orders.order_status_id=order_statuses.id
 	JOIN payment_types ON orders.payment_type_id=payment_types.id 
 	JOIN payment_statuses ON orders.payment_status_id=payment_statuses.id
      `
+	if queryParams.Query != "" && queryParams.Filter != "" {
+		findOrders = fmt.Sprintf("%s WHERE LOWER(%s) LIKE '%%%s%%'", findOrders, queryParams.Filter, strings.ToLower(queryParams.Query))
+	}
+	if queryParams.SortBy != "" {
+		if queryParams.SortDesc {
+			findOrders = fmt.Sprintf("%s ORDER BY %s DESC", findOrders, queryParams.SortBy)
+		} else {
+			findOrders = fmt.Sprintf("%s ORDER BY %s ASC", findOrders, queryParams.SortBy)
+		}
+	} else {
+		findOrders = fmt.Sprintf("%s ORDER BY orders.order_date DESC", findOrders)
+	}
+	if queryParams.Limit != 0 && queryParams.Page != 0 {
+		findOrders = fmt.Sprintf("%s LIMIT %d OFFSET %d", findOrders, queryParams.Limit, (queryParams.Page-1)*queryParams.Limit)
+	}
+	if queryParams.Limit == 0 || queryParams.Page == 0 {
+		findOrders = fmt.Sprintf("%s LIMIT 10 OFFSET 0", findOrders)
+	}
+	if queryParams.Limit == 0 || queryParams.Page == 0 {
+		findOrders = fmt.Sprintf("%s LIMIT 10 OFFSET 0", findOrders)
+	}
 	err := o.DB.Raw(findOrders).Scan(&orders).Error
 	return orders, err
 }

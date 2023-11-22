@@ -36,8 +36,8 @@ func (o *OrderUseCase) Displayorder(userId int, orderId int) (response.OrderResp
 }
 
 // ListAllOrders implements interfaces.OrderUseCase.
-func (o *OrderUseCase) ListAllOrders(userId int) ([]response.OrderResponse, error) {
-	orders, err := o.orderRepo.ListAllOrders(userId)
+func (o *OrderUseCase) ListAllOrders(userId int, queryParams helperStruct.QueryParams) ([]response.OrderResponse, error) {
+	orders, err := o.orderRepo.ListAllOrders(userId, queryParams)
 	return orders, err
 }
 
@@ -54,7 +54,7 @@ func (o *OrderUseCase) UpdateOrderStatus(updateOrder helperStruct.UpdateOrder) (
 }
 
 // ListAllOrdersForAdmin implements interfaces.OrderUseCase.
-func (o *OrderUseCase) ListAllOrdersForAdmin() ([]response.AdminOrder, error) {
-	orders, err := o.orderRepo.ListAllOrdersForAdmin()
+func (o *OrderUseCase) ListAllOrdersForAdmin(queryParams helperStruct.QueryParams) ([]response.AdminOrder, error) {
+	orders, err := o.orderRepo.ListAllOrdersForAdmin(queryParams)
 	return orders, err
 }

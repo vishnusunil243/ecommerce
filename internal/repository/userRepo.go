@@ -78,10 +78,10 @@ func (c *userDatabase) UpdateAddress(userId, addressId int, address helperStruct
 }
 
 // DeleteAddress implements interfaces.UserRepository.
-func (c *userDatabase) DeleteAddress(addressId int) error {
+func (c *userDatabase) DeleteAddress(addressId, userId int) error {
 	var exists bool
-	query := `SELECT EXISTS (select 1 exists from addresses where id=?)`
-	c.DB.Raw(query, addressId).Scan(&exists)
+	query := `SELECT EXISTS (select 1 exists from addresses where id=$1 and users_id=$2)`
+	c.DB.Raw(query, addressId, userId).Scan(&exists)
 	if !exists {
 		return fmt.Errorf("error deleting address")
 	}

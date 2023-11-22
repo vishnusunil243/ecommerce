@@ -5,6 +5,7 @@ import (
 
 	"gorm.io/gorm"
 	"main.go/internal/common/response"
+	"main.go/internal/domain"
 	"main.go/internal/repository/interfaces"
 )
 
@@ -20,8 +21,17 @@ func NewWalletRepo(DB *gorm.DB) interfaces.WalletRepository {
 
 // CreateWallet implements interfaces.WalletRepository.
 func (w *walletRepository) CreateWallet(userId int) error {
-	createWallet := `INSERT INTO wallets(user_id,amount) VALUES ($1,0)`
-	err := w.DB.Exec(createWallet, userId).Error
+	// Fetch the maximum existing id from the table
+	var maxID int
+	err := w.DB.Model(&domain.Wallet{}).Select("COALESCE(MAX(id), 0)").Row().Scan(&maxID)
+	if err != nil {
+		return err
+	}
+
+	// Increment the maximum id for the new wallet
+	newID := maxID + 1
+	createWallet := `INSERT INTO wallets(id,user_id,amount) VALUES ($1,$2,0)`
+	err = w.DB.Exec(createWallet, newID, userId).Error
 	return err
 }
 
