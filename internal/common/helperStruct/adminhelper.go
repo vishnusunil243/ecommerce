@@ -12,3 +12,10 @@ type SuperLoginReq struct {
 type BlockData struct {
 	UserId uint ` json:"userid" validate:"required"`
 }
+type Dashboard struct {
+	StartDate string `json:"date1"`
+	EndDate   string `json:"date2"`
+	Month     int    `json:"month"`
+	Day       int    `json:"day"`
+	Year      int    `json:"year"`
+}

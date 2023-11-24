@@ -70,3 +70,9 @@ func (cr *adminUsecase) ReportUser(UsersId int) (response.UserReport, error) {
 	reportInfo, err := cr.adminRepo.ReportUser(UsersId)
 	return reportInfo, err
 }
+
+// GetDashboard implements interfaces.AdminUseCase.
+func (cr *adminUsecase) GetDashboard(dashboard helperStruct.Dashboard) (response.DashBoard, error) {
+	newDashboard, err := cr.adminRepo.GetDashBoard(dashboard)
+	return newDashboard, err
+}

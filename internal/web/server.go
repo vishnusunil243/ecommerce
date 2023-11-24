@@ -126,6 +126,10 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 				order.GET("/:order_id", orderHandler.DisplayOrderForAdmin)
 				order.PATCH("/update", orderHandler.UpdateOrderStatus)
 			}
+			dashboard := admin.Group("/dashboard")
+			{
+				dashboard.GET("/", adminHandler.GetDashboard)
+			}
 
 		}
 	}

@@ -8,10 +8,10 @@ type AdminData struct {
 	Email string
 }
 type DashBoard struct {
-	TotalRevenue        int
-	TotalOrders         int
-	TotalProductsSelled int
-	TotalUsers          int
+	TotalRevenue      int
+	TotalOrders       int
+	TotalProductsSold int
+	TotalUsers        int
 }
 
 type SalesReport struct {

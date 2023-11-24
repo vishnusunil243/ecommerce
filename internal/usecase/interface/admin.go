@@ -10,4 +10,5 @@ type AdminUseCase interface {
 	ListAllUsers(queryParams helperStruct.QueryParams) ([]response.UserDetails, error)
 	DisplayUser(id int) (response.UserDetails, error)
 	ReportUser(UsersId int) (response.UserReport, error)
+	GetDashboard(dashboard helperStruct.Dashboard) (response.DashBoard, error)
 }

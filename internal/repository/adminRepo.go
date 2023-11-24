@@ -75,3 +75,40 @@ func (c *adminDatabase) ReportUser(UsersId int) (response.UserReport, error) {
 
 	return user, err
 }
+
+// GetDashBoard implements interfaces.AdminRepository.
+func (c *adminDatabase) GetDashBoard(dashboard helperStruct.Dashboard) (response.DashBoard, error) {
+	tx := c.DB.Begin()
+	var newDashboard response.DashBoard
+	getDashboard := `SELECT SUM(oi.quantity*oi.price) AS total_revenue,
+	                 SUM(oi.quantity) AS total_products_sold,
+					  COUNT(DISTINCT o.id) AS total_orders 
+					  FROM orders o JOIN order_items oi ON o.id=oi.orders_id`
+	getUsers := `SELECT COUNT(id) AS TotalUsers FROM USERS`
+	if dashboard.Year != 0 {
+		getDashboard = fmt.Sprintf("%s WHERE EXTRACT (YEAR FROM order_date) =%d ", getDashboard, dashboard.Year)
+		getUsers = fmt.Sprintf("%s WHERE EXTRACT (YEAR FROM created_at)=%d", getUsers, dashboard.Year)
+		if dashboard.Month != 0 {
+			getDashboard = fmt.Sprintf("%s AND EXTRACT (MONTH FROM order_date)=%d", getDashboard, dashboard.Month)
+			getUsers = fmt.Sprintf("%s AND EXTRACT (MONTH FROM created_at)=%d", getUsers, dashboard.Month)
+			if dashboard.Day != 0 {
+				getDashboard = fmt.Sprintf("%s AND EXTRACT (DAY FROM order_date)=%d", getDashboard, dashboard.Day)
+				getUsers = fmt.Sprintf("%s AND EXTRACT (DAY FROM created_at)=%d", getUsers, dashboard.Day)
+			}
+		}
+	} else if dashboard.StartDate != "" && dashboard.EndDate != "" {
+		getDashboard = fmt.Sprintf("%s WHERE o.order_date BETWEEN '%s' AND '%s'", getDashboard, dashboard.StartDate, dashboard.EndDate)
+		getUsers = fmt.Sprintf("%s WHERE created_at BETWEEN '%s' AND '%s'", getUsers, dashboard.StartDate, dashboard.EndDate)
+	}
+	err := tx.Raw(getDashboard).Scan(&newDashboard).Error
+	if err != nil {
+		tx.Rollback()
+		return response.DashBoard{}, fmt.Errorf("error returning dashboard")
+	}
+	err = tx.Raw(getUsers).Scan(&newDashboard.TotalUsers).Error
+	if err != nil {
+		tx.Rollback()
+		return response.DashBoard{}, err
+	}
+	return newDashboard, nil
+}

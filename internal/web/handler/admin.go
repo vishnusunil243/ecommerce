@@ -139,3 +139,27 @@ func (a *AdminHandler) ReportUser(c *gin.Context) {
 		Errors:     nil,
 	})
 }
+func (a *AdminHandler) GetDashboard(c *gin.Context) {
+	var dashboard helperStruct.Dashboard
+	dashboard.StartDate = c.Query("start_date")
+	dashboard.EndDate = c.Query("end_date")
+	dashboard.Day, _ = strconv.Atoi(c.Query("day"))
+	dashboard.Month, _ = strconv.Atoi(c.Query("month"))
+	dashboard.Year, _ = strconv.Atoi(c.Query("year"))
+	newDashboard, err := a.adminUsecase.GetDashboard(dashboard)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error displaying dashboard",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "dashboard fetched successfully",
+		Data:       newDashboard,
+		Errors:     nil,
+	})
+}
