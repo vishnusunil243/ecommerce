@@ -6,10 +6,12 @@ type OrderResponse struct {
 	OrderDate     time.Time
 	PaymentTypeId uint
 	PaymentType   string
-	Address       `gorm:"embedded" json:"ShippingAddress"`
+	Address       `gorm:"embedded" json:"ShippingAddress,omitempty"`
 	OrderTotal    int
 	OrderStatusID uint
 	OrderStatus   string
+	ProductItemId uint   `json:"ProductItemId,omitempty"`
+	ProductName   string `json:"ProductName,omitempty"`
 	PaymentStatus string
 	CouponCode    string `json:"coupon,omitempty"`
 }

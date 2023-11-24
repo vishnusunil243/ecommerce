@@ -64,6 +64,12 @@ func (c *userDatabase) AddAdress(id int, address helperStruct.Address) (response
 // UpdateAddress implements interfaces.UserRepository.
 func (c *userDatabase) UpdateAddress(userId, addressId int, address helperStruct.Address) (response.Address, error) {
 	var updatedAddress response.Address
+	var exists bool
+	selectQuery := `SELECT EXISTS (select 1  from addresses WHERE id=$1 AND users_id=$2)`
+	c.DB.Raw(selectQuery, addressId, userId).Scan(&exists)
+	if !exists {
+		return updatedAddress, fmt.Errorf("no such address to update")
+	}
 	if address.IsDefault { //Change the default address into false
 		changeDefault := `UPDATE addresses SET is_default = $1 WHERE users_id=$2 AND is_default=$3`
 		err := c.DB.Exec(changeDefault, false, userId, true).Error

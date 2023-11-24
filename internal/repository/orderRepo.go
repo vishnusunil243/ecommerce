@@ -126,11 +126,16 @@ func (c *orderDatabase) OrderAll(id int, paymentTypeid int) (response.OrderRespo
 		return response.OrderResponse{}, err
 	}
 	var orderResponse response.OrderResponse
-	err = tx.Raw(`SELECT orders.*,p.type AS payment_type,o.status AS order_status,addresses.*,payment_statuses.status AS payment_status FROM orders JOIN payment_types p ON  
+	err = tx.Raw(`SELECT orders.*,p.type AS payment_type,o.status AS order_status,addresses.*,payment_statuses.status AS payment_status,
+	order_items.product_item_id,products.product_name
+	FROM orders JOIN payment_types p ON  
 	p.id=orders.payment_type_id  JOIN order_statuses o ON orders.order_status_id=o.id
-	JOIN payment_statuses ON payment_statuses.id=orders.payment_status_id
-	JOIN addresses ON orders.shipping_address=addresses.id AND is_default=true  WHERE user_id=$1 AND orders.id=$2`, order.UserId, order.Id).Scan(&orderResponse).Error
+	LEFT JOIN payment_statuses ON payment_statuses.id=orders.payment_status_id
+	LEFT JOIN order_items ON order_items.orders_id=orders.id
+	LEFT JOIN products ON products.id=order_items.product_item_id
+	LEFT JOIN addresses ON orders.shipping_address=addresses.id AND is_default=true  WHERE user_id=$1 AND orders.id=$2`, order.UserId, order.Id).Scan(&orderResponse).Error
 	if err != nil {
+		tx.Rollback()
 		return response.OrderResponse{}, fmt.Errorf("error retrieving order information")
 	}
 	if err = tx.Commit().Error; err != nil {
@@ -186,10 +191,14 @@ func (o *orderDatabase) UserCancelOrder(orderId int, userId int) error {
 // ListAllOrders implements interfaces.OrderRepository.
 func (o *orderDatabase) ListAllOrders(userId int, queryParams helperStruct.QueryParams) ([]response.OrderResponse, error) {
 	var orders []response.OrderResponse
-	findOrders := `SELECT orders.*,p.type AS payment_type,o.status AS order_status,addresses.*,payment_statuses.status AS payment_status FROM orders JOIN payment_types p ON  
-	p.id=orders.payment_type_id  JOIN order_statuses o ON orders.order_status_id=o.id 
-	JOIN addresses ON orders.shipping_address=addresses.id AND addresses.is_default=true 
-	JOIN payment_statuses ON orders.payment_status_id=payment_statuses.id
+	findOrders := `SELECT orders.*,p.type AS payment_type,o.status AS order_status,addresses.*,payment_statuses.status AS payment_status
+	,order_items.product_item_id AS product_item_id,products.product_name
+	FROM orders JOIN payment_types p ON  
+	p.id=orders.payment_type_id LEFT JOIN order_statuses o ON orders.order_status_id=o.id 
+	LEFT JOIN addresses ON orders.shipping_address=addresses.id
+	LEFT JOIN order_items ON orders.id=order_items.orders_id
+	LEFT JOIN products ON order_items.product_item_id=products.id 
+	LEFT JOIN payment_statuses ON orders.payment_status_id=payment_statuses.id
 	WHERE user_id=?`
 	if queryParams.Query != "" && queryParams.Filter != "" {
 		findOrders = fmt.Sprintf("%s WHERE LOWER(%s) LIKE '%%%s%%'", findOrders, queryParams.Filter, strings.ToLower(queryParams.Query))
@@ -225,10 +234,14 @@ func (o *orderDatabase) DisplayOrder(userId int, orderId int) (response.OrderRes
 		return response.OrderResponse{}, fmt.Errorf("no such order")
 	}
 	var order response.OrderResponse
-	err := o.DB.Raw(`SELECT orders.*,p.type AS payment_type,o.status AS order_status,addresses.*,payment_statuses.status AS payment_status FROM orders JOIN payment_types p ON  
-	p.id=orders.payment_type_id  JOIN order_statuses o ON orders.order_status_id=o.id
-	JOIN addresses ON orders.shipping_address=addresses.id AND is_default=true  
-	JOIN payment_statuses ON orders.payment_status_id=payment_statuses.id
+	err := o.DB.Raw(`SELECT orders.*,p.type AS payment_type,o.status AS order_status,addresses.*,payment_statuses.status AS payment_status,order_items.product_item_id AS product_item_id
+	,products.product_name
+	FROM orders JOIN payment_types p ON  
+	p.id=orders.payment_type_id LEFT JOIN order_statuses o ON orders.order_status_id=o.id
+	LEFT JOIN order_items ON orders.id=order_items.orders_id
+	LEFT JOIN addresses ON orders.shipping_address=addresses.id  
+	LEFT JOIN products ON order_items.product_item_id=products.id 
+	LEFT JOIN payment_statuses ON orders.payment_status_id=payment_statuses.id
 	WHERE user_id=$1 AND orders.id=$2`, userId, orderId).Scan(&order).Error
 	return order, err
 }
