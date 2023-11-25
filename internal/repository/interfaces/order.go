@@ -6,10 +6,10 @@ import (
 )
 
 type OrderRepository interface {
-	OrderAll(UserId, PaymentTypeid int) (response.OrderResponse, error)
+	OrderAll(UserId, PaymentTypeid int) (response.ResponseOrder, error)
 	UserCancelOrder(orderId, userId int) error
 	ListAllOrders(userId int, queryParams helperStruct.QueryParams) ([]response.OrderResponse, error)
-	DisplayOrder(userId, orderId int) (response.OrderResponse, error)
+	DisplayOrder(userId, orderId int) (response.ResponseOrder, error)
 	ReturnOrder(userId, orderId int) (response.ReturnOrder, error)
 	UpdateOrderStatus(updateOrder helperStruct.UpdateOrder) (response.AdminOrder, error)
 	ListAllOrdersForAdmin(queryParams helperStruct.QueryParams) ([]response.AdminOrder, error)

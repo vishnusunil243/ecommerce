@@ -22,37 +22,37 @@ func NewOrderRepo(DB *gorm.DB) interfaces.OrderRepository {
 }
 
 // OrderAll implements interfaces.OrderRepository.
-func (c *orderDatabase) OrderAll(id int, paymentTypeid int) (response.OrderResponse, error) {
+func (c *orderDatabase) OrderAll(id int, paymentTypeid int) (response.ResponseOrder, error) {
 	tx := c.DB.Begin()
 	var cart domain.Carts
 	findCart := `SELECT * FROM carts WHERE user_id=?`
 	err := tx.Raw(findCart, id).Scan(&cart).Error
 	if err != nil {
 		tx.Rollback()
-		return response.OrderResponse{}, err
+		return response.ResponseOrder{}, err
 	}
 	if cart.Total == 0 {
 		setTotal := `UPDATE carts SET total=sub_total WHERE users_id=?`
 		err = tx.Exec(setTotal, id).Error
 		if err != nil {
 			tx.Rollback()
-			return response.OrderResponse{}, err
+			return response.ResponseOrder{}, err
 		}
 	}
 	if cart.SubTotal == 0 {
 		tx.Rollback()
-		return response.OrderResponse{}, fmt.Errorf("there are no items in cart")
+		return response.ResponseOrder{}, fmt.Errorf("there are no items in cart")
 	}
 	var addressId int
 	findAddress := `SELECT id FROM addresses WHERE users_id=? AND is_default=true`
 	err = tx.Raw(findAddress, id).Scan(&addressId).Error
 	if err != nil {
 		tx.Rollback()
-		return response.OrderResponse{}, fmt.Errorf("error finding address")
+		return response.ResponseOrder{}, fmt.Errorf("error finding address")
 	}
 	if addressId == 0 {
 		tx.Rollback()
-		return response.OrderResponse{}, fmt.Errorf("please add an address to complete your order")
+		return response.ResponseOrder{}, fmt.Errorf("please add an address to complete your order")
 	}
 	var order domain.Orders
 	insertOrder := `INSERT INTO orders (user_id,order_date,payment_type_id,shipping_address,order_total,order_status_id,payment_status_id) 
@@ -60,28 +60,28 @@ func (c *orderDatabase) OrderAll(id int, paymentTypeid int) (response.OrderRespo
 	err = tx.Raw(insertOrder, id, paymentTypeid, addressId, cart.Total, 1, 1).Scan(&order).Error
 	if err != nil {
 		tx.Rollback()
-		return response.OrderResponse{}, fmt.Errorf("error placing order")
+		return response.ResponseOrder{}, fmt.Errorf("error placing order")
 	}
 	var cartItems []helperStruct.CartItems
 	cartDetail := `select ci.product_item_id,ci.quantity,pi.price,pi.qty_in_stock  from cart_items ci join product_items pi on ci.product_item_id = pi.id where ci.carts_id=$1`
 	err = tx.Raw(cartDetail, cart.Id).Scan(&cartItems).Error
 	if err != nil {
 		tx.Rollback()
-		return response.OrderResponse{}, err
+		return response.ResponseOrder{}, err
 	}
 
 	//Add the items in the cart into the orderitems one by one
 	for _, items := range cartItems {
 		//check whether the item is available
 		if items.Quantity > items.QtyInStock {
-			return response.OrderResponse{}, fmt.Errorf("out of stock")
+			return response.ResponseOrder{}, fmt.Errorf("out of stock")
 		}
 		insetOrderItems := `INSERT INTO order_items (orders_id,product_item_id,quantity,price) VALUES($1,$2,$3,$4)`
 		err = tx.Exec(insetOrderItems, order.Id, items.ProductItemId, items.Quantity, items.Price).Error
 
 		if err != nil {
 			tx.Rollback()
-			return response.OrderResponse{}, err
+			return response.ResponseOrder{}, err
 		}
 	}
 
@@ -90,7 +90,7 @@ func (c *orderDatabase) OrderAll(id int, paymentTypeid int) (response.OrderRespo
 	err = tx.Exec(updateCart, id).Error
 	if err != nil {
 		tx.Rollback()
-		return response.OrderResponse{}, err
+		return response.ResponseOrder{}, err
 	}
 
 	//Remove the items from the cart_items
@@ -99,7 +99,7 @@ func (c *orderDatabase) OrderAll(id int, paymentTypeid int) (response.OrderRespo
 		err = tx.Exec(removeCartItems, cart.Id, items.ProductItemId).Error
 		if err != nil {
 			tx.Rollback()
-			return response.OrderResponse{}, err
+			return response.ResponseOrder{}, err
 		}
 	}
 
@@ -109,7 +109,7 @@ func (c *orderDatabase) OrderAll(id int, paymentTypeid int) (response.OrderRespo
 		err = tx.Exec(updateQty, items.Quantity, items.ProductItemId).Error
 		if err != nil {
 			tx.Rollback()
-			return response.OrderResponse{}, err
+			return response.ResponseOrder{}, err
 		}
 	}
 
@@ -123,7 +123,7 @@ func (c *orderDatabase) OrderAll(id int, paymentTypeid int) (response.OrderRespo
 		   VALUES($1,$2,$3,$4,NOW())`
 	if err = tx.Exec(createPaymentDetails, order.Id, order.OrderTotal, paymentTypeid, 1).Error; err != nil {
 		tx.Rollback()
-		return response.OrderResponse{}, err
+		return response.ResponseOrder{}, err
 	}
 	var orderResponse response.OrderResponse
 	err = tx.Raw(`SELECT orders.*,p.type AS payment_type,o.status AS order_status,addresses.*,payment_statuses.status AS payment_status,
@@ -136,14 +136,24 @@ func (c *orderDatabase) OrderAll(id int, paymentTypeid int) (response.OrderRespo
 	LEFT JOIN addresses ON orders.shipping_address=addresses.id AND is_default=true  WHERE user_id=$1 AND orders.id=$2`, order.UserId, order.Id).Scan(&orderResponse).Error
 	if err != nil {
 		tx.Rollback()
-		return response.OrderResponse{}, fmt.Errorf("error retrieving order information")
+		return response.ResponseOrder{}, fmt.Errorf("error retrieving order information")
 	}
+	var responseOrder response.ResponseOrder
+	var orderProducts []response.OrderProduct
+	err = tx.Raw(`SELECT order_items.product_item_id,products.product_name,order_items.quantity FROM orders JOIN order_items ON orders.id=order_items.orders_id
+	                JOIN products ON order_items.product_item_id=products.id
+	                WHERE user_id=$1 AND orders.id=$2`, order.UserId, order.Id).Scan(&orderProducts).Error
+	if err != nil {
+		return response.ResponseOrder{}, err
+	}
+	responseOrder.OrderProducts = orderProducts
+	responseOrder.OrderResponse = orderResponse
 	if err = tx.Commit().Error; err != nil {
 		tx.Rollback()
-		return response.OrderResponse{}, err
+		return response.ResponseOrder{}, err
 	}
 
-	return orderResponse, nil
+	return responseOrder, nil
 }
 
 // UserCanceOrder implements interfaces.OrderRepository.
@@ -227,13 +237,15 @@ func (o *orderDatabase) ListAllOrders(userId int, queryParams helperStruct.Query
 }
 
 // DisplayOrder implements interfaces.OrderRepository.
-func (o *orderDatabase) DisplayOrder(userId int, orderId int) (response.OrderResponse, error) {
+func (o *orderDatabase) DisplayOrder(userId int, orderId int) (response.ResponseOrder, error) {
 	var exists bool
 	o.DB.Raw(`SELECT EXISTS (select 1 exists from orders where id=$1 and user_id=$2)`, orderId, userId).Scan(&exists)
 	if !exists {
-		return response.OrderResponse{}, fmt.Errorf("no such order")
+		return response.ResponseOrder{}, fmt.Errorf("no such order")
 	}
 	var order response.OrderResponse
+	var orderProducts []response.OrderProduct
+	var res response.ResponseOrder
 	err := o.DB.Raw(`SELECT orders.*,p.type AS payment_type,o.status AS order_status,addresses.*,payment_statuses.status AS payment_status,order_items.product_item_id AS product_item_id
 	,products.product_name
 	FROM orders JOIN payment_types p ON  
@@ -243,7 +255,15 @@ func (o *orderDatabase) DisplayOrder(userId int, orderId int) (response.OrderRes
 	LEFT JOIN products ON order_items.product_item_id=products.id 
 	LEFT JOIN payment_statuses ON orders.payment_status_id=payment_statuses.id
 	WHERE user_id=$1 AND orders.id=$2`, userId, orderId).Scan(&order).Error
-	return order, err
+	if err != nil {
+		return response.ResponseOrder{}, err
+	}
+	err = o.DB.Raw(`SELECT order_items.product_item_id,products.product_name,order_items.quantity FROM orders JOIN order_items ON orders.id=order_items.orders_id
+	                JOIN products ON order_items.product_item_id=products.id
+	                WHERE user_id=$1 AND orders.id=$2`, userId, orderId).Scan(&orderProducts).Error
+	res.OrderProducts = orderProducts
+	res.OrderResponse = order
+	return res, err
 }
 
 // ReturnOrder implements interfaces.OrderRepository.

@@ -1,6 +1,8 @@
 package response
 
-import "time"
+import (
+	"time"
+)
 
 type OrderResponse struct {
 	OrderDate     time.Time
@@ -10,10 +12,17 @@ type OrderResponse struct {
 	OrderTotal    int
 	OrderStatusID uint
 	OrderStatus   string
-	ProductItemId uint   `json:"ProductItemId,omitempty"`
-	ProductName   string `json:"ProductName,omitempty"`
 	PaymentStatus string
 	CouponCode    string `json:"coupon,omitempty"`
+}
+type OrderProduct struct {
+	ProductItemId uint
+	ProductName   string
+	Quantity      int
+}
+type ResponseOrder struct {
+	OrderResponse OrderResponse
+	OrderProducts []OrderProduct
 }
 type ReturnOrder struct {
 	OrderDate     time.Time

@@ -167,6 +167,7 @@ func (o *OrderHandler) DisplayOrder(c *gin.Context) {
 		})
 		return
 	}
+
 	c.JSON(http.StatusOK, response.Response{
 		StatusCode: 200,
 		Message:    "order retrieved successfully",

@@ -18,7 +18,7 @@ func NewOrderUseCase(orderRepo interfaces.OrderRepository) services.OrderUseCase
 }
 
 // OrderAll implements interfaces.OrderUseCase.
-func (o *OrderUseCase) OrderAll(id int, paymentTypeId int) (response.OrderResponse, error) {
+func (o *OrderUseCase) OrderAll(id int, paymentTypeId int) (response.ResponseOrder, error) {
 	order, err := o.orderRepo.OrderAll(id, paymentTypeId)
 	return order, err
 }
@@ -30,7 +30,7 @@ func (o *OrderUseCase) UserCancelOrder(orderId int, userId int) error {
 }
 
 // Displayorder implements interfaces.OrderUseCase.
-func (o *OrderUseCase) Displayorder(userId int, orderId int) (response.OrderResponse, error) {
+func (o *OrderUseCase) Displayorder(userId int, orderId int) (response.ResponseOrder, error) {
 	order, err := o.orderRepo.DisplayOrder(userId, orderId)
 	return order, err
 }
