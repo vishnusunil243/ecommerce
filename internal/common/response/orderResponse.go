@@ -5,6 +5,7 @@ import (
 )
 
 type OrderResponse struct {
+	Id            uint
 	OrderDate     time.Time
 	PaymentTypeId uint
 	PaymentType   string
@@ -14,6 +15,8 @@ type OrderResponse struct {
 	OrderStatus   string
 	PaymentStatus string
 	CouponCode    string `json:"coupon,omitempty"`
+	CouponAmount  int    `json:"couponAmount,omitempty"`
+	SubTotal      int    `json:"SubTotal,omitempty"`
 }
 type OrderProduct struct {
 	ProductItemId uint

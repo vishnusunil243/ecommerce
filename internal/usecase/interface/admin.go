@@ -11,4 +11,5 @@ type AdminUseCase interface {
 	DisplayUser(id int) (response.UserDetails, error)
 	ReportUser(UsersId int) (response.UserReport, error)
 	GetDashboard(dashboard helperStruct.Dashboard) (response.DashBoard, error)
+	ViewSalesReport(filter helperStruct.Dashboard) ([]response.SalesReport, error)
 }

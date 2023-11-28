@@ -9,6 +9,7 @@ type PaymentDetails struct {
 	PaymentStatusId int
 	UpdatedAt       time.Time
 	PaymentType     PaymentType   `gorm:"foreignKey:PaymentTypeId"`
+	PaymentRef      string        `json:"payment_ref"`
 	PaymentStatus   PaymentStatus `gorm:"foreignKey:PaymentStatusId"`
 }
 type PaymentStatus struct {

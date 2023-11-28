@@ -10,7 +10,7 @@ import (
 	"main.go/internal/web/handler"
 )
 
-func InitializeAP1(cfg config.Config) (*http.ServerHTTP, error) {
+func InitializeAPI1(cfg config.Config) (*http.ServerHTTP, error) {
 	wire.Build(
 		db.ConnectDatabase,
 		repository.NewWalletRepo,
@@ -20,6 +20,8 @@ func InitializeAP1(cfg config.Config) (*http.ServerHTTP, error) {
 		repository.NewSuperRepo,
 		repository.NewCartRepo,
 		repository.NewOrderRepo,
+		repository.NewPaymentRepo,
+		repository.NewCouponRepo,
 		usecase.NewUserUsecase,
 		usecase.NewAdminUsecase,
 		usecase.NewProductUsecase,
@@ -27,6 +29,8 @@ func InitializeAP1(cfg config.Config) (*http.ServerHTTP, error) {
 		usecase.NewCartUseCase,
 		usecase.NewOrderUseCase,
 		usecase.NewWalletUseCase,
+		usecase.NewPaymentuseCase,
+		usecase.NewCouponUsecase,
 		handler.NewUserHandler,
 		handler.NewAdminHandler,
 		handler.NewProductHandler,
@@ -34,6 +38,8 @@ func InitializeAP1(cfg config.Config) (*http.ServerHTTP, error) {
 		handler.NewCartHandler,
 		handler.NewOrderHandler,
 		handler.NewWalletHandler,
+		handler.NewPaymentHandler,
+		handler.NewCouponHandler,
 		http.NewServerHTTP,
 	)
 	return &http.ServerHTTP{}, nil

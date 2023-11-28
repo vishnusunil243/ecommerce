@@ -22,7 +22,7 @@ func NewOrderRepo(DB *gorm.DB) interfaces.OrderRepository {
 }
 
 // OrderAll implements interfaces.OrderRepository.
-func (c *orderDatabase) OrderAll(id int, paymentTypeid int) (response.ResponseOrder, error) {
+func (c *orderDatabase) OrderAll(id int, paymentTypeid int, coupon response.Coupon) (response.ResponseOrder, error) {
 	tx := c.DB.Begin()
 	var cart domain.Carts
 	findCart := `SELECT * FROM carts WHERE user_id=?`
@@ -32,7 +32,7 @@ func (c *orderDatabase) OrderAll(id int, paymentTypeid int) (response.ResponseOr
 		return response.ResponseOrder{}, err
 	}
 	if cart.Total == 0 {
-		setTotal := `UPDATE carts SET total=sub_total WHERE users_id=?`
+		setTotal := `UPDATE carts SET total=sub_total WHERE user_id=?`
 		err = tx.Exec(setTotal, id).Error
 		if err != nil {
 			tx.Rollback()
@@ -53,6 +53,36 @@ func (c *orderDatabase) OrderAll(id int, paymentTypeid int) (response.ResponseOr
 	if addressId == 0 {
 		tx.Rollback()
 		return response.ResponseOrder{}, fmt.Errorf("please add an address to complete your order")
+	}
+	if coupon.Id != 0 {
+		var exists bool
+		tx.Raw(`SELECT EXISTS (select 1 from user_coupons WHERE user_id=$1 AND coupon_id=$2)`, id, coupon.Id).Scan(&exists)
+		if coupon.Quantity == 0 {
+			tx.Rollback()
+			return response.ResponseOrder{}, fmt.Errorf("this coupon has expired")
+		}
+		if coupon.IsDisabled {
+			tx.Rollback()
+			return response.ResponseOrder{}, fmt.Errorf("this coupon is disabled by the admin")
+		}
+		if exists {
+			tx.Rollback()
+			return response.ResponseOrder{}, fmt.Errorf("can't add this coupon since you have already exhausted it's usage")
+		} else {
+			addCoupon := `INSERT INTO user_coupons(user_id,coupon_id) VALUES($1,$2)`
+			err := tx.Exec(addCoupon, id, coupon.Id).Error
+			if err != nil {
+				tx.Rollback()
+				return response.ResponseOrder{}, fmt.Errorf("can't add this coupon")
+			}
+			cart.Total = cart.Total - coupon.Amount
+			updateCoupons := `UPDATE coupons SET quantity=quantity-1 WHERE id=?`
+			err = tx.Exec(updateCoupons, coupon.Id).Error
+			if err != nil {
+				tx.Rollback()
+				return response.ResponseOrder{}, fmt.Errorf("can't add this coupon")
+			}
+		}
 	}
 	var order domain.Orders
 	insertOrder := `INSERT INTO orders (user_id,order_date,payment_type_id,shipping_address,order_total,order_status_id,payment_status_id) 
@@ -84,7 +114,6 @@ func (c *orderDatabase) OrderAll(id int, paymentTypeid int) (response.ResponseOr
 			return response.ResponseOrder{}, err
 		}
 	}
-
 	//Update the cart total
 	updateCart := `UPDATE carts SET total=0,sub_total=0,coupon_id=0 WHERE user_id=?`
 	err = tx.Exec(updateCart, id).Error
@@ -125,6 +154,36 @@ func (c *orderDatabase) OrderAll(id int, paymentTypeid int) (response.ResponseOr
 		tx.Rollback()
 		return response.ResponseOrder{}, err
 	}
+	if paymentTypeid == 3 {
+		var walletAmount int
+		getWalletAmount := `SELECT amount FROM wallets WHERE user_id=$1`
+		err = tx.Raw(getWalletAmount, id).Scan(&walletAmount).Error
+		if err != nil {
+			tx.Rollback()
+			return response.ResponseOrder{}, fmt.Errorf("error retrieving amount from wallet")
+		}
+		if walletAmount >= cart.Total {
+			updateWallet := `UPDATE wallets SET amount=amount-$1 WHERE user_id=$2`
+			err = tx.Exec(updateWallet, cart.Total, id).Error
+			if err != nil {
+				tx.Rollback()
+				return response.ResponseOrder{}, fmt.Errorf("error updating wallet amount")
+			}
+			updatePaymentStatus := `UPDATE orders SET payment_status_id=5 WHERE id=$1`
+			err = tx.Exec(updatePaymentStatus, order.Id).Error
+			if err != nil {
+				tx.Rollback()
+				return response.ResponseOrder{}, fmt.Errorf("error updating payment status")
+			}
+			updatePaymentDetails := `UPDATE payment_details SET payment_status_id=5 WHERE orders_id=$1`
+			err = tx.Exec(updatePaymentDetails, order.Id).Error
+			if err != nil {
+				tx.Rollback()
+				return response.ResponseOrder{}, fmt.Errorf("error updating payment details")
+			}
+		}
+
+	}
 	var orderResponse response.OrderResponse
 	err = tx.Raw(`SELECT orders.*,p.type AS payment_type,o.status AS order_status,addresses.*,payment_statuses.status AS payment_status,
 	order_items.product_item_id,products.product_name
@@ -137,6 +196,17 @@ func (c *orderDatabase) OrderAll(id int, paymentTypeid int) (response.ResponseOr
 	if err != nil {
 		tx.Rollback()
 		return response.ResponseOrder{}, fmt.Errorf("error retrieving order information")
+	}
+	if coupon.Name != "" {
+		orderResponse.CouponCode = coupon.Name
+		orderResponse.CouponAmount = coupon.Amount
+		orderResponse.SubTotal = cart.SubTotal
+		err := tx.Exec(`UPDATE user_coupons SET order_id=$1 WHERE coupon_id=$2`, order.Id, coupon.Id).Error
+		if err != nil {
+			tx.Rollback()
+			// fmt.Errorf("error updating coupons table")
+			return response.ResponseOrder{}, err
+		}
 	}
 	var responseOrder response.ResponseOrder
 	var orderProducts []response.OrderProduct
@@ -184,12 +254,55 @@ func (o *orderDatabase) UserCancelOrder(orderId int, userId int) error {
 		tx.Rollback()
 		return err
 	}
-	cancelOrder := `UPDATE orders SET order_status_id=5,payment_status_id=3 WHERE id=$1 AND user_id=$2`
-	err = tx.Exec(cancelOrder, orderId, userId).Error
+	var paymentStatusId int
+	getPaymentStatus := `SELECT payment_status_id FROM orders WHERE id=$1`
+	err = tx.Raw(getPaymentStatus, orderId).Scan(&paymentStatusId).Error
 	if err != nil {
 		tx.Rollback()
-		return err
+		return fmt.Errorf("error retrieving payment status")
 	}
+	if paymentStatusId == 5 {
+		var price int
+		getAmount := `SELECT order_total FROM orders WHERE id=$1`
+		err = tx.Raw(getAmount, orderId).Scan(&price).Error
+		if err != nil {
+			tx.Rollback()
+			return fmt.Errorf("error retrieving total from orders")
+		}
+		updateWallet := `UPDATE wallets SET amount=amount+$1 WHERE user_id=$2`
+		err = tx.Exec(updateWallet, price, userId).Error
+		if err != nil {
+			tx.Rollback()
+			return fmt.Errorf("error updating wallet")
+		}
+		cancelOrder := `UPDATE orders SET order_status_id=5,payment_status_id=4 WHERE id=$1 AND user_id=$2`
+		err = tx.Exec(cancelOrder, orderId, userId).Error
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		updatePaymentDetails := `UPDATE payment_details SET payment_status_id=4 WHERE orders_id=$1`
+		err = tx.Exec(updatePaymentDetails, orderId).Error
+		if err != nil {
+			tx.Rollback()
+			return fmt.Errorf("error updating payment details")
+		}
+
+	} else {
+		cancelOrder := `UPDATE orders SET order_status_id=5,payment_status_id=3 WHERE id=$1 AND user_id=$2`
+		err = tx.Exec(cancelOrder, orderId, userId).Error
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		updatePaymentDetails := `UPDATE payment_details SET payment_status_id=3 WHERE orders_id=$1`
+		err = tx.Exec(updatePaymentDetails, orderId).Error
+		if err != nil {
+			tx.Rollback()
+			return fmt.Errorf("error updating payment details")
+		}
+	}
+
 	if err = tx.Commit().Error; err != nil {
 		tx.Rollback()
 		return err
@@ -247,20 +360,23 @@ func (o *orderDatabase) DisplayOrder(userId int, orderId int) (response.Response
 	var orderProducts []response.OrderProduct
 	var res response.ResponseOrder
 	err := o.DB.Raw(`SELECT orders.*,p.type AS payment_type,o.status AS order_status,addresses.*,payment_statuses.status AS payment_status,order_items.product_item_id AS product_item_id
-	,products.product_name
+	,products.product_name,coupons.name AS coupon_code,coupons.amount AS coupon_amount 
 	FROM orders JOIN payment_types p ON  
 	p.id=orders.payment_type_id LEFT JOIN order_statuses o ON orders.order_status_id=o.id
 	LEFT JOIN order_items ON orders.id=order_items.orders_id
 	LEFT JOIN addresses ON orders.shipping_address=addresses.id  
 	LEFT JOIN products ON order_items.product_item_id=products.id 
 	LEFT JOIN payment_statuses ON orders.payment_status_id=payment_statuses.id
-	WHERE user_id=$1 AND orders.id=$2`, userId, orderId).Scan(&order).Error
+	LEFT JOIN user_coupons ON orders.id=user_coupons.order_id
+	LEFT JOIN coupons ON user_coupons.coupon_id=coupons.id
+	WHERE orders.user_id=$1 AND orders.id=$2`, userId, orderId).Scan(&order).Error
 	if err != nil {
 		return response.ResponseOrder{}, err
 	}
 	err = o.DB.Raw(`SELECT order_items.product_item_id,products.product_name,order_items.quantity FROM orders JOIN order_items ON orders.id=order_items.orders_id
 	                JOIN products ON order_items.product_item_id=products.id
 	                WHERE user_id=$1 AND orders.id=$2`, userId, orderId).Scan(&orderProducts).Error
+	order.Id = uint(orderId)
 	res.OrderProducts = orderProducts
 	res.OrderResponse = order
 	return res, err
@@ -288,6 +404,11 @@ func (o *orderDatabase) ReturnOrder(userId int, orderId int) (response.ReturnOrd
 	if err != nil {
 		tx.Rollback()
 		return response.ReturnOrder{}, fmt.Errorf("error updating order status")
+	}
+	updatePaymentDetails := `UPDATE payment_details SET payment_status_id=4 WHERE orders_id=$1`
+	err = tx.Exec(updatePaymentDetails, orderId).Error
+	if err != nil {
+		return response.ReturnOrder{}, fmt.Errorf("error updating payment_details")
 	}
 	updateWallet := `UPDATE wallets SET amount=amount+$1 WHERE user_id=$2`
 	err = tx.Exec(updateWallet, order.OrderTotal, userId).Error
@@ -329,6 +450,10 @@ func (o *orderDatabase) UpdateOrderStatus(updateOrder helperStruct.UpdateOrder) 
 		err := o.DB.Exec(updateOrderStatus, updateOrder.OrderStatusID, 5, updateOrder.OrderId).Error
 		if err != nil {
 			return response.AdminOrder{}, fmt.Errorf("error updating order status")
+		}
+		err = o.DB.Exec(`UPDATE payment_details SET payment_status_id=5 WHERE orders_id=$1`, updateOrder.OrderId).Error
+		if err != nil {
+			return response.AdminOrder{}, fmt.Errorf("error updating payment_details")
 		}
 	}
 	var adminOrder response.AdminOrder
@@ -388,4 +513,11 @@ func (o *orderDatabase) DisplayOrderForAdmin(orderId int) (response.AdminOrder, 
 	JOIN payment_statuses ON orders.payment_status_id=payment_statuses.id
 	WHERE  orders.id=$1`, orderId).Scan(&order).Error
 	return order, err
+}
+
+// UserIdFromOrder implements interfaces.OrderRepository.
+func (o *orderDatabase) UserIdFromOrder(orderId int) (int, error) {
+	var userId int
+	err := o.DB.Raw(`SELECT user_id FROM orders WHERE id=?`, orderId).Scan(&userId).Error
+	return userId, err
 }

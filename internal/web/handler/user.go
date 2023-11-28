@@ -346,6 +346,18 @@ func (u *UserHandler) UpdateMobile(c *gin.Context) {
 		})
 		return
 	}
+	_, err = strconv.Atoi(mobile.Mobile)
+	if err != nil {
+		err = fmt.Errorf("please provide an accurate mobile number")
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error parsing mobile",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+
 	Id, err := handlerUtil.GetUserIdFromContext(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Response{

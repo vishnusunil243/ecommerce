@@ -6,13 +6,15 @@ import (
 )
 
 type Config struct {
-	DB_KEY       string `mapstructure:"DB_KEY"`
-	SMTP_SERVER  string `mapstructure:"SMTP_SERVER"`
-	SMTP_PORT    string `mapstructure:"SMTP_PORT"`
-	SMTP_PASSORD string `mapstructure:"SMTP_PASSWORD"`
-	SMTP_USER    string `mapstructure:"SMTP_USER"`
-	REDIS_ADDR   string `mapstructure:"REDIS_ADDR"`
-	SECRET       string `mapstructure:"SECRET"`
+	DB_KEY         string `mapstructure:"DB_KEY"`
+	SMTP_SERVER    string `mapstructure:"SMTP_SERVER"`
+	SMTP_PORT      string `mapstructure:"SMTP_PORT"`
+	SMTP_PASSORD   string `mapstructure:"SMTP_PASSWORD"`
+	SMTP_USER      string `mapstructure:"SMTP_USER"`
+	REDIS_ADDR     string `mapstructure:"REDIS_ADDR"`
+	SECRET         string `mapstructure:"SECRET"`
+	RAZORPAYID     string `mapstructure:"RAZORPAY_ID"`
+	RAZORPAYSECRET string `mapstructure:"RAZORPAY_SECRET"`
 }
 
 var envs = []string{
@@ -23,6 +25,8 @@ var envs = []string{
 	"SMTP_PASSWORD",
 	"REDIS_ADDR",
 	"SECRET",
+	"RAZORPAY_ID",
+	"RAZORPAY_SECRET",
 }
 
 func LoadConfig() (Config, error) {

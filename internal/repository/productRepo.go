@@ -453,10 +453,11 @@ func (c *ProductDatabase) DisplayProductItem(id int) (response.ProductItem, erro
 		return productItem, fmt.Errorf("no productitem found with given id")
 	}
 	selectQuery := `
-    SELECT product_items.*, products.description,products.product_name,products.brand, categories.category_name
+    SELECT product_items.*, products.description,products.product_name,products.brand,image_items.image,categories.category_name
     FROM product_items
     JOIN products ON product_items.product_id = products.id
     JOIN categories ON products.category_id = categories.id
+	LEFT JOIN image_items ON product_items.id=image_items.product_item_id
 	WHERE product_items.id=?
 `
 	err := c.DB.Raw(selectQuery, id).Scan(&productItem).Error

@@ -76,3 +76,9 @@ func (cr *adminUsecase) GetDashboard(dashboard helperStruct.Dashboard) (response
 	newDashboard, err := cr.adminRepo.GetDashBoard(dashboard)
 	return newDashboard, err
 }
+
+// ViewSalesReport implements interfaces.AdminUseCase.
+func (cr *adminUsecase) ViewSalesReport(filter helperStruct.Dashboard) ([]response.SalesReport, error) {
+	salesReports, err := cr.adminRepo.ViewSalesReport(filter)
+	return salesReports, err
+}

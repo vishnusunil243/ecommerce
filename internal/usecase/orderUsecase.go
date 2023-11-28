@@ -1,6 +1,8 @@
 package usecase
 
 import (
+	"fmt"
+
 	"main.go/internal/common/helperStruct"
 	"main.go/internal/common/response"
 	"main.go/internal/repository/interfaces"
@@ -8,18 +10,24 @@ import (
 )
 
 type OrderUseCase struct {
-	orderRepo interfaces.OrderRepository
+	orderRepo  interfaces.OrderRepository
+	couponRepo interfaces.CouponRepository
 }
 
-func NewOrderUseCase(orderRepo interfaces.OrderRepository) services.OrderUseCase {
+func NewOrderUseCase(orderRepo interfaces.OrderRepository, couponRepo interfaces.CouponRepository) services.OrderUseCase {
 	return &OrderUseCase{
-		orderRepo: orderRepo,
+		orderRepo:  orderRepo,
+		couponRepo: couponRepo,
 	}
 }
 
 // OrderAll implements interfaces.OrderUseCase.
-func (o *OrderUseCase) OrderAll(id int, paymentTypeId int) (response.ResponseOrder, error) {
-	order, err := o.orderRepo.OrderAll(id, paymentTypeId)
+func (o *OrderUseCase) OrderAll(id int, paymentTypeId int, CouponName string) (response.ResponseOrder, error) {
+	coupon, _ := o.couponRepo.CouponFromName(CouponName)
+	if coupon.Id == 0 && CouponName != "" {
+		return response.ResponseOrder{}, fmt.Errorf("invalid coupon code")
+	}
+	order, err := o.orderRepo.OrderAll(id, paymentTypeId, coupon)
 	return order, err
 }
 

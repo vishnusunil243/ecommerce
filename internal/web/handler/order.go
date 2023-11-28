@@ -32,6 +32,7 @@ func (o *OrderHandler) OrderAll(c *gin.Context) {
 		})
 		return
 	}
+
 	userId, err := handlerUtil.GetUserIdFromContext(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Response{
@@ -42,7 +43,18 @@ func (o *OrderHandler) OrderAll(c *gin.Context) {
 		})
 		return
 	}
-	order, err := o.orderUsecase.OrderAll(userId, paymentTypeId)
+	var CouponName helperStruct.CouponName
+	err = c.BindJSON(&CouponName)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error binding json",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	order, err := o.orderUsecase.OrderAll(userId, paymentTypeId, CouponName.CouponName)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Response{
 			StatusCode: 400,

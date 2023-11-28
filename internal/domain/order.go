@@ -18,7 +18,8 @@ type Orders struct {
 	OrderStatus     OrderStatus `gorm:"foreignKey:OrderStatusID" json:"-"`
 	PaymentStatusId uint
 	PaymentStatus   PaymentStatus `gorm:"foreignKey:PaymentStatusId" json:"-"`
-	CouponCode      string
+	CouponCode      uint
+	Coupon          Coupon `gorm:"foreignKey:CouponCode"`
 }
 
 type OrderItem struct {

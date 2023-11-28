@@ -12,4 +12,5 @@ type AdminRepository interface {
 	DispalyUser(id int) (response.UserDetails, error)
 	ReportUser(usersid int) (response.UserReport, error)
 	GetDashBoard(dashboard helperStruct.Dashboard) (response.DashBoard, error)
+	ViewSalesReport(filter helperStruct.Dashboard) ([]response.SalesReport, error)
 }

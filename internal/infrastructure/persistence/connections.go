@@ -40,6 +40,8 @@ func ConnectDatabase(cfg config.Config) (*gorm.DB, error) {
 		&domain.Carts{},
 		&domain.Wallet{},
 		&domain.CartItem{},
+		&domain.Coupon{},
+		&domain.UserCoupons{},
 	)
 	unblockUser := concurrency.NewConcurrency(db)
 

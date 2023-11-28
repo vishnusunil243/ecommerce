@@ -14,10 +14,11 @@ type ServerHTTP struct {
 
 func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.AdminHandler,
 	productHandler *handler.ProductHandler, superadminHandler *handler.SuperAdminHandler, carrtHandler *handler.CartHandler,
-	orderHandler *handler.OrderHandler, walletHandler *handler.WalletHandler) *ServerHTTP {
+	orderHandler *handler.OrderHandler, walletHandler *handler.WalletHandler, paymentHandler *handler.PaymentHandler, couponHandler *handler.CouponHandler) *ServerHTTP {
 	engine := gin.New()
 	engine.Use(gin.Logger())
 	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
+	engine.GET("/payment-handler", paymentHandler.PaymentSuccess)
 	home := engine.Group("/home")
 	{
 		home.GET("/", productHandler.ListAllProducts)
@@ -32,6 +33,8 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 		user.POST("/signup", userHandler.UserSignup)
 		user.POST("/login", userHandler.UserLogin)
 		user.PATCH("/forgotpassword", userHandler.ForgotPassword)
+		//Payment
+		user.GET("/order/online-payment/:orderId", paymentHandler.CreateRazorpayPayment)
 		user.Use(middleware.UserAuth)
 		{
 			user.POST("/logout", handler.UserLogout)
@@ -130,6 +133,20 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 			{
 				dashboard.GET("/", adminHandler.GetDashboard)
 			}
+			salesReports := admin.Group("/salesreports")
+			{
+				salesReports.GET("/", adminHandler.ViewSalesReport)
+				salesReports.GET("/download", adminHandler.DownloadSalesReport)
+			}
+			coupon := admin.Group("/coupons")
+			{
+				coupon.POST("/add", couponHandler.AddCoupon)
+				coupon.PATCH("/:coupon_id", couponHandler.UpdateCoupon)
+				coupon.PATCH("/:coupon_id/disable", couponHandler.DisableCoupon)
+				coupon.PATCH("/:coupon_id/enable", couponHandler.EnableCoupon)
+				coupon.GET("/", couponHandler.ListAllCoupons)
+				coupon.GET("/:coupon_id", couponHandler.DisplayCoupon)
+			}
 
 		}
 	}
@@ -160,5 +177,6 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 	return &ServerHTTP{engine: engine}
 }
 func (sh *ServerHTTP) Start() {
+	sh.engine.LoadHTMLGlob("../../templates/*.html")
 	sh.engine.Run(":8080")
 }

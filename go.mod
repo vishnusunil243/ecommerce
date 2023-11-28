@@ -8,6 +8,7 @@ require (
 	github.com/go-playground/validator/v10 v10.14.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/google/wire v0.5.0
+	github.com/razorpay/razorpay-go v1.2.0
 	github.com/spf13/viper v1.17.0
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.0

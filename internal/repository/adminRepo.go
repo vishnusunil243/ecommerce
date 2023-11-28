@@ -112,3 +112,26 @@ func (c *adminDatabase) GetDashBoard(dashboard helperStruct.Dashboard) (response
 	}
 	return newDashboard, nil
 }
+
+// ViewSalesReport implements interfaces.AdminRepository.
+func (c *adminDatabase) ViewSalesReport(filter helperStruct.Dashboard) ([]response.SalesReport, error) {
+	var salesReports []response.SalesReport
+	getSalesReport := `SELECT u.name,pt.type AS payment_type,
+	                   o.order_date,o.order_total
+					    FROM orders o JOIN users u ON u.id=o.user_id
+						 JOIN payment_types pt ON pt.id=o.payment_type_id
+						WHERE o.order_status_id=4`
+	if filter.Year != 0 {
+		getSalesReport = fmt.Sprintf(`%s WHERE EXTRACT(YEAR FROM o.order_date)=%d`, getSalesReport, filter.Year)
+		if filter.Month != 0 {
+			getSalesReport = fmt.Sprintf(`%s AND EXTRACT(MONTH FROM o.order_date)=%d `, getSalesReport, filter.Month)
+		}
+		if filter.Day != 0 {
+			getSalesReport = fmt.Sprintf(`%s AND EXTRACT(DAY FROM o.order_date)=%d`, getSalesReport, filter.Day)
+		}
+	} else if filter.StartDate != "" && filter.EndDate != "" {
+		getSalesReport = fmt.Sprintf(`%s WHERE o.order_date BETWEEN '%s' AND '%s'`, getSalesReport, filter.StartDate, filter.EndDate)
+	}
+	err := c.DB.Raw(getSalesReport).Scan(&salesReports).Error
+	return salesReports, err
+}
