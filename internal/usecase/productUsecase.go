@@ -132,7 +132,7 @@ func (cr *ProductUsecase) DeleteProductItem(id int) error {
 }
 
 // DisplayProductItem implements interfaces.ProductUsecase.
-func (cr *ProductUsecase) DisplayProductItem(id int) (response.ProductItem, error) {
+func (cr *ProductUsecase) DisplayProductItem(id int) (response.DisplayProductItem, error) {
 	productItem, err := cr.productRepo.DisplayProductItem(id)
 	return productItem, err
 }
@@ -161,4 +161,10 @@ func (c *ProductUsecase) UploadImage(filepath string, productId int) (response.I
 func (cr *ProductUsecase) DeleteImage(id int) error {
 	err := cr.productRepo.DeleteImage(id)
 	return err
+}
+
+// SearchProducts implements interfaces.ProductUsecase.
+func (cr *ProductUsecase) SearchProducts(queryParams helperStruct.QueryParams, searchProducts string) ([]response.Product, error) {
+	products, err := cr.productRepo.SearchProducts(queryParams, searchProducts)
+	return products, err
 }

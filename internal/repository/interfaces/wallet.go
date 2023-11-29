@@ -1,8 +1,11 @@
 package interfaces
 
-import "main.go/internal/common/response"
+import (
+	"main.go/internal/common/response"
+)
 
 type WalletRepository interface {
 	CreateWallet(userId int) error
 	DisplayWallet(userId int) (response.Wallet, error)
+	WalletHistory(userid int) ([]response.WalletHistories, error)
 }

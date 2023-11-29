@@ -14,7 +14,8 @@ type ServerHTTP struct {
 
 func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.AdminHandler,
 	productHandler *handler.ProductHandler, superadminHandler *handler.SuperAdminHandler, carrtHandler *handler.CartHandler,
-	orderHandler *handler.OrderHandler, walletHandler *handler.WalletHandler, paymentHandler *handler.PaymentHandler, couponHandler *handler.CouponHandler) *ServerHTTP {
+	orderHandler *handler.OrderHandler, walletHandler *handler.WalletHandler, paymentHandler *handler.PaymentHandler, couponHandler *handler.CouponHandler,
+	wishListHandler *handler.WishlistHandler) *ServerHTTP {
 	engine := gin.New()
 	engine.Use(gin.Logger())
 	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
@@ -27,6 +28,7 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 		home.GET("/brands/:brand_id", productHandler.DisplayBrand)
 		home.GET("/categories", productHandler.ListAllCategories)
 		home.GET("/categories/:id", productHandler.DisplayCategory)
+		home.POST("/search", productHandler.SearchProducts)
 	}
 	user := engine.Group("/user")
 	{
@@ -42,6 +44,7 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 			{
 				userProfile.GET("/", userHandler.ViewUserProfile)
 				userProfile.PATCH("/mobile/edit", userHandler.UpdateMobile)
+				userProfile.PATCH("/email/edit", userHandler.UpdateEmail)
 				userProfile.PATCH("/changepassword", userHandler.ChangePassword)
 				address := userProfile.Group("/address")
 				{
@@ -73,6 +76,15 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 			wallet := user.Group("/wallet")
 			{
 				wallet.GET("/", walletHandler.DisplayWallet)
+				wallet.GET("/history", walletHandler.WalletHistory)
+			}
+			wishlist := user.Group("/wishlists")
+			{
+				wishlist.POST("/:product_item_id/add", wishListHandler.AddToWishlist)
+				wishlist.DELETE("/:product_item_id/remove", wishListHandler.RemoveFromWishlist)
+				wishlist.GET("/", wishListHandler.ListAllWishlist)
+				wishlist.GET("/:product_item_id", wishListHandler.DisplayWishlistProduct)
+				wishlist.POST("/:product_item_id/addtocart", carrtHandler.AddToCart)
 			}
 		}
 		user.Use(middleware.UserIsBlocked)

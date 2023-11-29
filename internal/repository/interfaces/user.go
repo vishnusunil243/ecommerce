@@ -15,6 +15,7 @@ type UserRepository interface {
 	ListAllAddresses(userId int) ([]response.Address, error)
 	ViewUserProfile(id int) (response.UserProfile, error)
 	UpdateMobile(id int, mobile string) (response.UserProfile, error)
+	UpdateEmail(email string, userId int) (response.UserProfile, error)
 	RetrieveUserInformation(id int) (domain.Users, error)
 	ChangePassword(id int, password helperStruct.UpdatePassword) (response.UserProfile, error)
 	ForgotPassword(newpassword helperStruct.ForgotPassword) error

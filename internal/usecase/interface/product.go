@@ -28,5 +28,6 @@ type ProductUsecase interface {
 	// ImageUpload(image helperStruct.ImageHelper) (response.ImageResponse, error)
 	UploadImage(filepath string, productid int) (response.Image, error)
 	DeleteImage(id int) error
-	DisplayProductItem(id int) (response.ProductItem, error)
+	DisplayProductItem(id int) (response.DisplayProductItem, error)
+	SearchProducts(queryParams helperStruct.QueryParams, searchProducts string) ([]response.Product, error)
 }

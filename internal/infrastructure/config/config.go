@@ -15,6 +15,10 @@ type Config struct {
 	SECRET         string `mapstructure:"SECRET"`
 	RAZORPAYID     string `mapstructure:"RAZORPAY_ID"`
 	RAZORPAYSECRET string `mapstructure:"RAZORPAY_SECRET"`
+	ENDPOINT       string `mapstructure:"ENDPOINT"`
+	SECRETKEY      string `mapstructure:"SECRETKEY"`
+	BUCKETNAME     string `mapstructure:"BUCKETNAME"`
+	ACCESSKEY      string `mapstructure:"ACCESSKEY"`
 }
 
 var envs = []string{
@@ -27,6 +31,10 @@ var envs = []string{
 	"SECRET",
 	"RAZORPAY_ID",
 	"RAZORPAY_SECRET",
+	"ENDPOINT",
+	"SECRETKEY",
+	"BUCKETNAME",
+	"ACCESSKEY",
 }
 
 func LoadConfig() (Config, error) {

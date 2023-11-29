@@ -46,3 +46,31 @@ func (w *WalletHandler) DisplayWallet(c *gin.Context) {
 		Errors:     nil,
 	})
 }
+func (w *WalletHandler) WalletHistory(c *gin.Context) {
+	userId, err := handlerUtil.GetUserIdFromContext(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error displaying wallet history",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	walletHistory, err := w.walletUseCase.WalletHistory(userId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error displaying wallet history",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "wallet history fetched successfully",
+		Data:       walletHistory,
+		Errors:     nil,
+	})
+}

@@ -483,3 +483,72 @@ func (u *UserHandler) ForgotPassword(c *gin.Context) {
 	})
 
 }
+func (u *UserHandler) UpdateEmail(c *gin.Context) {
+	var updateEmail helperStruct.UpdateEmail
+	err := c.BindJSON(&updateEmail)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error binding json",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	userId, err := handlerUtil.GetUserIdFromContext(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error retrieving userId",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	if updateEmail.OTP == "" {
+		err = middleware.SendOTP(updateEmail.Email)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, response.Response{
+				StatusCode: 400,
+				Message:    "error sending otp to the given email",
+				Data:       nil,
+				Errors:     err.Error(),
+			})
+			return
+		}
+		c.JSON(http.StatusOK, response.Response{
+			StatusCode: 200,
+			Message:    "please enter the otp",
+			Data:       nil,
+			Errors:     nil,
+		})
+		return
+	} else {
+		if !middleware.VerifyOTP(updateEmail.Email, updateEmail.OTP) {
+			c.JSON(http.StatusBadRequest, response.Response{
+				StatusCode: 400,
+				Message:    "invalid otp",
+				Data:       nil,
+				Errors:     err.Error(),
+			})
+			return
+		}
+	}
+	userProfile, err := u.userUseCase.UpdateEmail(userId, updateEmail.Email)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error updating email",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "email updateed successfully",
+		Data:       userProfile,
+		Errors:     nil,
+	})
+
+}

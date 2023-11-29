@@ -47,3 +47,6 @@ type ImageHelper struct {
 	ImageSize     int64
 	ImageData     []byte
 }
+type SearchProducts struct {
+	SearchProducts string
+}

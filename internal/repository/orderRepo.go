@@ -163,6 +163,13 @@ func (c *orderDatabase) OrderAll(id int, paymentTypeid int, coupon response.Coup
 			return response.ResponseOrder{}, fmt.Errorf("error retrieving amount from wallet")
 		}
 		if walletAmount >= cart.Total {
+			insertWalletHistory := `INSERT INTO wallet_histories (recent_transaction,user_id,balance,time) VALUES ($1,$2,$3,NOW())`
+			walletHistory := fmt.Sprintf("%d - %d", walletAmount, cart.Total)
+			err = tx.Exec(insertWalletHistory, walletHistory, id, (walletAmount - cart.Total)).Error
+			if err != nil {
+				tx.Rollback()
+				return response.ResponseOrder{}, fmt.Errorf("error inserting wallet history")
+			}
 			updateWallet := `UPDATE wallets SET amount=amount-$1 WHERE user_id=$2`
 			err = tx.Exec(updateWallet, cart.Total, id).Error
 			if err != nil {
@@ -181,6 +188,9 @@ func (c *orderDatabase) OrderAll(id int, paymentTypeid int, coupon response.Coup
 				tx.Rollback()
 				return response.ResponseOrder{}, fmt.Errorf("error updating payment details")
 			}
+		} else {
+			tx.Rollback()
+			return response.ResponseOrder{}, fmt.Errorf("you don't have enough amount in the wallet to complete this transaction please choose a different payment method")
 		}
 
 	}
@@ -268,6 +278,20 @@ func (o *orderDatabase) UserCancelOrder(orderId int, userId int) error {
 		if err != nil {
 			tx.Rollback()
 			return fmt.Errorf("error retrieving total from orders")
+		}
+		var walletAmount int
+		getWalletAmount := `SELECT amount FROM wallets WHERE user_id=$1`
+		err = tx.Raw(getWalletAmount, userId).Scan(&walletAmount).Error
+		if err != nil {
+			tx.Rollback()
+			return fmt.Errorf("error retrieving amount from wallet")
+		}
+		insertWalletHistory := `INSERT INTO wallet_histories (recent_transaction,user_id,balance,time) VALUES ($1,$2,$3,NOW())`
+		walletHistory := fmt.Sprintf("%d + %d", walletAmount, price)
+		err = tx.Exec(insertWalletHistory, walletHistory, userId, (walletAmount + price)).Error
+		if err != nil {
+			tx.Rollback()
+			return fmt.Errorf("error inserting wallet history")
 		}
 		updateWallet := `UPDATE wallets SET amount=amount+$1 WHERE user_id=$2`
 		err = tx.Exec(updateWallet, price, userId).Error
@@ -409,6 +433,20 @@ func (o *orderDatabase) ReturnOrder(userId int, orderId int) (response.ReturnOrd
 	err = tx.Exec(updatePaymentDetails, orderId).Error
 	if err != nil {
 		return response.ReturnOrder{}, fmt.Errorf("error updating payment_details")
+	}
+	var walletAmount int
+	getWalletAmount := `SELECT amount FROM wallets WHERE user_id=$1`
+	err = tx.Raw(getWalletAmount, userId).Scan(&walletAmount).Error
+	if err != nil {
+		tx.Rollback()
+		return response.ReturnOrder{}, fmt.Errorf("error retrieving amount from wallet")
+	}
+	insertWalletHistory := `INSERT INTO wallet_histories (recent_transaction,user_id,balance,time) VALUES ($1,$2,$3,NOW())`
+	walletHistory := fmt.Sprintf("%d + %d", walletAmount, order.OrderTotal)
+	err = tx.Exec(insertWalletHistory, walletHistory, userId, (walletAmount + order.OrderTotal)).Error
+	if err != nil {
+		tx.Rollback()
+		return response.ReturnOrder{}, fmt.Errorf("error inserting wallet history")
 	}
 	updateWallet := `UPDATE wallets SET amount=amount+$1 WHERE user_id=$2`
 	err = tx.Exec(updateWallet, order.OrderTotal, userId).Error

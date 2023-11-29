@@ -71,6 +71,11 @@ func (un *Concurrency) Concurrency() {
 			 `).Error; err != nil {
 				fmt.Println(err)
 			}
+			if err := un.DB.Exec(`
+			UPDATE coupons SET is_disabled=true WHERE coupons.created_at+INTERVAL '2 weeks' < NOW() 
+			`).Error; err != nil {
+				fmt.Println(err)
+			}
 			un.mu.Unlock()
 
 			fmt.Println("worked")

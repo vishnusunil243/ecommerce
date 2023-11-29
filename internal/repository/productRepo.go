@@ -445,12 +445,12 @@ func (c *ProductDatabase) DeleteProductItem(id int) error {
 }
 
 // DisplayProductItem implements interfaces.ProductRepository.
-func (c *ProductDatabase) DisplayProductItem(id int) (response.ProductItem, error) {
+func (c *ProductDatabase) DisplayProductItem(id int) (response.DisplayProductItem, error) {
 	var productItem response.ProductItem
 	var exists bool
 	c.DB.Raw(`select exists(select 1 from product_items where id=?)`, id).Scan(&exists)
 	if !exists {
-		return productItem, fmt.Errorf("no productitem found with given id")
+		return response.DisplayProductItem{}, fmt.Errorf("no productitem found with given id")
 	}
 	selectQuery := `
     SELECT product_items.*, products.description,products.product_name,products.brand,image_items.image,categories.category_name
@@ -461,7 +461,16 @@ func (c *ProductDatabase) DisplayProductItem(id int) (response.ProductItem, erro
 	WHERE product_items.id=?
 `
 	err := c.DB.Raw(selectQuery, id).Scan(&productItem).Error
-	return productItem, err
+	if err != nil {
+		return response.DisplayProductItem{}, err
+	}
+	var images []response.Image
+	displayImages := `SELECT  id,image FROM image_items WHERE product_item_id=?`
+	err = c.DB.Raw(displayImages, id).Scan(&images).Error
+	var responseProduct response.DisplayProductItem
+	responseProduct.Images = images
+	responseProduct.ProductSpecs = productItem
+	return responseProduct, err
 }
 
 // // UploadImage implements interfaces.ProductRepository.
@@ -488,6 +497,40 @@ func (c *ProductDatabase) DeleteImage(id int) error {
 		return fmt.Errorf("no image found for the given productitem")
 	}
 
-	err := c.DB.Exec(`DELETE FROM image_items WHERE product_item_id=?`, id).Error
+	err := c.DB.Exec(`DELETE FROM image_items WHERE id=?`, id).Error
 	return err
+}
+
+// SearchProducts implements interfaces.ProductRepository.
+func (c *ProductDatabase) SearchProducts(queryParams helperStruct.QueryParams, searchProducts string) ([]response.Product, error) {
+	var products []response.Product
+	search := "%" + searchProducts + "%"
+	getProductDetails := fmt.Sprintf(`SELECT products.product_name AS name,products.description,products.id,brand, categories.category_name
+	FROM products
+	JOIN categories ON products.category_id = categories.id
+	WHERE products.product_name ILIKE '%s'`, search)
+	if queryParams.Query != "" && queryParams.Filter != "" {
+		getProductDetails = fmt.Sprintf("%s AND LOWER(%s) LIKE '%%%s%%'", getProductDetails, queryParams.Filter, strings.ToLower(queryParams.Query))
+	}
+	if queryParams.SortBy != "" {
+		if queryParams.SortDesc {
+			getProductDetails = fmt.Sprintf("%s ORDER BY %s DESC", getProductDetails, queryParams.SortBy)
+		} else {
+			getProductDetails = fmt.Sprintf("%s ORDER BY %s ASC", getProductDetails, queryParams.SortBy)
+		}
+	} else {
+		getProductDetails = fmt.Sprintf("%s ORDER BY products.created_at DESC", getProductDetails)
+	}
+	if queryParams.Limit != 0 && queryParams.Page != 0 {
+		getProductDetails = fmt.Sprintf("%s LIMIT %d OFFSET %d", getProductDetails, queryParams.Limit, (queryParams.Page-1)*queryParams.Limit)
+	}
+	if queryParams.Limit == 0 || queryParams.Page == 0 {
+		getProductDetails = fmt.Sprintf("%s LIMIT 10 OFFSET 0", getProductDetails)
+	}
+	err := c.DB.Raw(getProductDetails).Scan(&products).Error
+	if len(products) == 0 {
+		return []response.Product{}, fmt.Errorf("no product found with the given name")
+	}
+
+	return products, err
 }

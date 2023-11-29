@@ -27,3 +27,9 @@ func (w *walletUseCase) DisplayWallet(userId int) (response.Wallet, error) {
 	wallet, err := w.walletRepo.DisplayWallet(userId)
 	return wallet, err
 }
+
+// WalletHistory implements interfaces.WalletUseCase.
+func (w *walletUseCase) WalletHistory(userId int) ([]response.WalletHistories, error) {
+	walletHistory, err := w.walletRepo.WalletHistory(userId)
+	return walletHistory, err
+}

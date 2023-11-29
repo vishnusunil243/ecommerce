@@ -171,3 +171,21 @@ func (c *userDatabase) ListAllAddresses(userId int) ([]response.Address, error) 
 	err := c.DB.Raw(selectAddresses, userId).Scan(&addresses).Error
 	return addresses, err
 }
+
+// UpdateEmail implements interfaces.UserRepository.
+func (c *userDatabase) UpdateEmail(email string, userId int) (response.UserProfile, error) {
+	var userProfile response.UserProfile
+	updateEmail := `UPDATE users SET email=$1 WHERE id=$2`
+	err := c.DB.Exec(updateEmail, email, userId).Error
+	if err != nil {
+		return response.UserProfile{}, err
+	}
+	selectProfileQuery := `
+SELECT users.*, addresses.*
+FROM users
+LEFT JOIN addresses ON users.id = addresses.users_id
+WHERE users.id = ? AND addresses.is_default=true
+`
+	err = c.DB.Raw(selectProfileQuery, userId).Scan(&userProfile).Error
+	return userProfile, err
+}

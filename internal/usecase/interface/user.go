@@ -14,6 +14,7 @@ type UserUseCase interface {
 	ListAllAddresses(userId int) ([]response.Address, error)
 	ViewUserProfile(id int) (response.UserProfile, error)
 	UpdateMobile(id int, mobile string) (response.UserProfile, error)
+	UpdateEmail(userId int, email string) (response.UserProfile, error)
 	ChangePassword(id int, password helperStruct.UpdatePassword) (response.UserProfile, error)
 	ForgotPassword(newpassword helperStruct.ForgotPassword) error
 }

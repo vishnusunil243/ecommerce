@@ -46,3 +46,11 @@ func (w *walletRepository) DisplayWallet(userId int) (response.Wallet, error) {
 
 	return wallet, nil
 }
+
+// WalletHistory implements interfaces.WalletRepository.
+func (w *walletRepository) WalletHistory(userid int) ([]response.WalletHistories, error) {
+	var walletHistories []response.WalletHistories
+	walletHistory := `SELECT * FROM wallet_histories WHERE user_id=$1`
+	err := w.DB.Raw(walletHistory, userid).Scan(&walletHistories).Error
+	return walletHistories, err
+}

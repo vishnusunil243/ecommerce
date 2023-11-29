@@ -131,3 +131,9 @@ func (cr *UserUseCase) ListAllAddresses(userId int) ([]response.Address, error) 
 	addresses, err := cr.userRepo.ListAllAddresses(userId)
 	return addresses, err
 }
+
+// UpdateEmail implements interfaces.UserUseCase.
+func (cr *UserUseCase) UpdateEmail(userId int, email string) (response.UserProfile, error) {
+	userProfile, err := cr.userRepo.UpdateEmail(email, userId)
+	return userProfile, err
+}

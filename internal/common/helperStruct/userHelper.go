@@ -44,3 +44,7 @@ type ForgotPassword struct {
 type UpdateMobile struct {
 	Mobile string `json:"mobile"`
 }
+type UpdateEmail struct {
+	Email string `json:"email"`
+	OTP   string `json:"otp"`
+}

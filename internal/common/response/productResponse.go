@@ -35,7 +35,7 @@ type ProductItem struct {
 	Storage           int
 	Graphic_Processor string
 	Price             int
-	Image             string `json:"image,omitempty"`
+	Image             string
 }
 type ImageResponse struct {
 	ID    int    `json:"id"`
@@ -44,4 +44,8 @@ type ImageResponse struct {
 type Image struct {
 	ID    int    `json:"id"`
 	Image string `json:"image"`
+}
+type DisplayProductItem struct {
+	ProductSpecs ProductItem
+	Images       []Image
 }

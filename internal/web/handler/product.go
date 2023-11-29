@@ -1,10 +1,15 @@
 package handler
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/spf13/viper"
 	"main.go/internal/common/helperStruct"
 	"main.go/internal/common/response"
 	services "main.go/internal/usecase/interface"
@@ -694,18 +699,63 @@ func (cr *ProductHandler) UploadImage(c *gin.Context) {
 		})
 		return
 	}
+
+	// Initialize MinIO client object
+	minioClient, err := minio.New(viper.GetString("ENDPOINT"), &minio.Options{
+		Creds:  credentials.NewStaticV4(viper.GetString("ACCESSKEY"), viper.GetString("SECRETKEY"), ""),
+		Secure: false, // Change to true if using HTTPS
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, response.Response{
+			StatusCode: 500,
+			Message:    "failed to initialize MinIO client",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
 	var Image response.Image
 
 	// Multipart form
 	form, _ := c.MultipartForm()
 
 	files := form.File["images"]
-
+	images := make([]string, 0)
 	for _, file := range files {
 		// Upload the file to specific dst.
-		c.SaveUploadedFile(file, "../asset/uploads/"+file.Filename)
+		filePath := "../asset/uploads/" + file.Filename
+		c.SaveUploadedFile(file, filePath)
 
-		Image, err = cr.productUseCase.UploadImage("../asset/uploads/"+file.Filename, productId)
+		objectName := fmt.Sprintf("product_%d_%s", productId, file.Filename)
+		// Upload file to MinIO
+
+		// Open the file to get an io.Reader
+		fileData, err := file.Open()
+		if err != nil {
+			c.JSON(http.StatusBadRequest, response.Response{
+				StatusCode: 400,
+				Message:    "can't open form file",
+				Data:       nil,
+				Errors:     err.Error(),
+			})
+			return
+		}
+		defer fileData.Close()
+		_, err = minioClient.PutObject(context.TODO(), viper.GetString("BUCKETNAME"), objectName, fileData, file.Size, minio.PutObjectOptions{})
+		if err != nil {
+			c.JSON(http.StatusBadRequest, response.Response{
+				StatusCode: 400,
+				Message:    "can't upload images to MinIO",
+				Data:       nil,
+				Errors:     err.Error(),
+			})
+			return
+		}
+
+		// Get the MinIO URL for the uploaded file
+		objectURL := fmt.Sprintf("%s/%s/%s", viper.GetString("ENDPOINT"), viper.GetString("BUCKETNAME"), objectName)
+
+		Image, err = cr.productUseCase.UploadImage(objectURL, productId)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, response.Response{
 				StatusCode: 400,
@@ -715,12 +765,13 @@ func (cr *ProductHandler) UploadImage(c *gin.Context) {
 			})
 			return
 		}
+		images = append(images, Image.Image)
 
 	}
 	c.JSON(http.StatusOK, response.Response{
 		StatusCode: 200,
 		Message:    "image uploaded",
-		Data:       Image,
+		Data:       images,
 		Errors:     nil,
 	})
 
@@ -751,6 +802,44 @@ func (p *ProductHandler) DeleteImage(c *gin.Context) {
 		StatusCode: 200,
 		Message:    "image deleted successfully",
 		Data:       nil,
+		Errors:     nil,
+	})
+}
+func (p *ProductHandler) SearchProducts(c *gin.Context) {
+	var queryParams helperStruct.QueryParams
+	var search helperStruct.SearchProducts
+	err := c.BindJSON(&search)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error binding json",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	queryParams.Page, _ = strconv.Atoi(c.Query("page"))
+	queryParams.Limit, _ = strconv.Atoi(c.Query("limit"))
+	queryParams.SortBy = c.Query("sort_by")
+	if c.Query("sort_desc") != "" {
+		queryParams.SortDesc = true
+	}
+	queryParams.Query = c.Query("query")
+	queryParams.Filter = c.Query("filter")
+	searchProducts, err := p.productUseCase.SearchProducts(queryParams, search.SearchProducts)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error searching products",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "products fetched successfully",
+		Data:       searchProducts,
 		Errors:     nil,
 	})
 }

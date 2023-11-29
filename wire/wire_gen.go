@@ -49,6 +49,9 @@ func InitializeAPI(cfg config.Config) (*http.ServerHTTP, error) {
 	paymentHandler := handler.NewPaymentHandler(paymentUseCase)
 	couponUsecase := usecase.NewCouponUsecase(couponRepository)
 	couponHandler := handler.NewCouponHandler(couponUsecase)
-	serverHTTP := http.NewServerHTTP(userHandler, adminHandler, productHandler, superAdminHandler, cartHandler, orderHandler, walletHandler, paymentHandler, couponHandler)
+	wishlistRepository := repository.NewWishlistRepo(gormDB)
+	wishlistUseCase := usecase.NewWishlistUseCase(wishlistRepository)
+	wishlistHandler := handler.NewWishlistHandler(wishlistUseCase)
+	serverHTTP := http.NewServerHTTP(userHandler, adminHandler, productHandler, superAdminHandler, cartHandler, orderHandler, walletHandler, paymentHandler, couponHandler, wishlistHandler)
 	return serverHTTP, nil
 }
