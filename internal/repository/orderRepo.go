@@ -338,7 +338,7 @@ func (o *orderDatabase) UserCancelOrder(orderId int, userId int) error {
 // ListAllOrders implements interfaces.OrderRepository.
 func (o *orderDatabase) ListAllOrders(userId int, queryParams helperStruct.QueryParams) ([]response.OrderResponse, error) {
 	var orders []response.OrderResponse
-	findOrders := `SELECT orders.*,p.type AS payment_type,o.status AS order_status,addresses.*,payment_statuses.status AS payment_status
+	findOrders := `SELECT p.type AS payment_type,o.status AS order_status,addresses.*,orders.*,payment_statuses.status AS payment_status
 	,order_items.product_item_id AS product_item_id,products.product_name
 	FROM orders JOIN payment_types p ON  
 	p.id=orders.payment_type_id LEFT JOIN order_statuses o ON orders.order_status_id=o.id 
@@ -383,7 +383,7 @@ func (o *orderDatabase) DisplayOrder(userId int, orderId int) (response.Response
 	var order response.OrderResponse
 	var orderProducts []response.OrderProduct
 	var res response.ResponseOrder
-	err := o.DB.Raw(`SELECT orders.*,p.type AS payment_type,o.status AS order_status,addresses.*,payment_statuses.status AS payment_status,order_items.product_item_id AS product_item_id
+	err := o.DB.Raw(`SELECT p.type AS payment_type,o.status AS order_status,addresses.*,orders.*,payment_statuses.status AS payment_status,order_items.product_item_id AS product_item_id
 	,products.product_name,coupons.name AS coupon_code,coupons.amount AS coupon_amount 
 	FROM orders JOIN payment_types p ON  
 	p.id=orders.payment_type_id LEFT JOIN order_statuses o ON orders.order_status_id=o.id
