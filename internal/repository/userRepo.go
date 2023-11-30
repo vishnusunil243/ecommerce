@@ -43,7 +43,13 @@ func (c *userDatabase) UserSignUp(user helperStruct.UserReq) (response.UserData,
 func (c *userDatabase) AddAdress(id int, address helperStruct.Address) (response.Address, error) {
 	var newAdress response.Address
 	var exists bool
-	selectQuery := `SELECT EXISTS (select 1  from addresses WHERE user_id=?)`
+	var rowsCount int
+	addressLimit := `SELECT COUNT(*) FROM addresses WHERE users_id=?`
+	c.DB.Raw(addressLimit, id).Scan(&rowsCount)
+	if rowsCount >= 3 {
+		return response.Address{}, fmt.Errorf("you have reached the limit of adding your addresses please update an existing one")
+	}
+	selectQuery := `SELECT EXISTS (select 1  from addresses WHERE users_id=?)`
 	c.DB.Raw(selectQuery, id).Scan(&exists)
 	if !exists {
 		address.IsDefault = true

@@ -327,10 +327,13 @@ func (c *ProductDatabase) AddProductItem(productItem helperStruct.ProductItem) (
 		return newProductItem, fmt.Errorf("ram can't have a negative value")
 	}
 	if productItem.Qty < 0 {
-		return newProductItem, fmt.Errorf("the item can't have a negative quantity")
+		return newProductItem, fmt.Errorf("the quantity can't have a negative quantity")
 	}
 	if productItem.Storage < 0 {
 		return newProductItem, fmt.Errorf("storage can't have a negative value")
+	}
+	if productItem.Battery < 0 {
+		return newProductItem, fmt.Errorf("battery can't have a negative value")
 	}
 	var exists bool
 	c.DB.Raw(`SELECT EXISTS(SELECT 1 FROM product_items WHERE product_id=?)`, productItem.Product_id).Scan(&exists)
@@ -384,7 +387,7 @@ func (c *ProductDatabase) ListAllProductItems(queryParams helperStruct.QueryPara
     FROM product_items
     JOIN products ON product_items.product_id = products.id
     JOIN categories ON products.category_id = categories.id
-	LEFT JOIN image_items ON product_items.id=image_items.product_item_id
+	LEFT JOIN image_items ON product_items.id=image_items.product_item_id AND image_items.is_default=true
 `
 	if queryParams.Query != "" && queryParams.Filter != "" {
 		getProductItemDetails = fmt.Sprintf("%s WHERE LOWER(%s) LIKE '%%%s%%'", getProductItemDetails, queryParams.Filter, strings.ToLower(queryParams.Query))
@@ -457,7 +460,7 @@ func (c *ProductDatabase) DisplayProductItem(id int) (response.DisplayProductIte
     FROM product_items
     JOIN products ON product_items.product_id = products.id
     JOIN categories ON products.category_id = categories.id
-	LEFT JOIN image_items ON product_items.id=image_items.product_item_id
+	LEFT JOIN image_items ON product_items.id=image_items.product_item_id AND is_default=true
 	WHERE product_items.id=?
 `
 	err := c.DB.Raw(selectQuery, id).Scan(&productItem).Error
@@ -482,8 +485,10 @@ func (c *ProductDatabase) DisplayProductItem(id int) (response.DisplayProductIte
 // -------------------------- Uploaded-Model --------------------------//
 
 func (c *ProductDatabase) UploadImage(filepath string, productId int) (response.Image, error) {
+	updateImageDefault := `UPDATE image_items SET is_default=false WHERE product_item_id=?`
+	c.DB.Exec(updateImageDefault, productId)
 	var image response.Image
-	uploadImage := `INSERT INTO image_items (product_item_id,image)VALUES($1,$2) RETURNING product_item_id AS id,image`
+	uploadImage := `INSERT INTO image_items (product_item_id,image,is_default)VALUES($1,$2,true) RETURNING product_item_id AS id,image`
 	err := c.DB.Raw(uploadImage, productId, filepath).Scan(&image).Error
 	return image, err
 }
@@ -492,7 +497,7 @@ func (c *ProductDatabase) UploadImage(filepath string, productId int) (response.
 func (c *ProductDatabase) DeleteImage(id int) error {
 	var exists bool
 
-	c.DB.Raw(`SELECT exists (select  1 from image_items WHERE product_item_id=?)`, id).Scan(&exists)
+	c.DB.Raw(`SELECT exists (select  1 from image_items WHERE id=?)`, id).Scan(&exists)
 	if !exists {
 		return fmt.Errorf("no image found for the given productitem")
 	}

@@ -63,7 +63,7 @@ func (c *orderDatabase) OrderAll(id int, paymentTypeid int, coupon response.Coup
 		}
 		if coupon.IsDisabled {
 			tx.Rollback()
-			return response.ResponseOrder{}, fmt.Errorf("this coupon is disabled by the admin")
+			return response.ResponseOrder{}, fmt.Errorf("this coupon is disabled ")
 		}
 		if exists {
 			tx.Rollback()
@@ -195,7 +195,7 @@ func (c *orderDatabase) OrderAll(id int, paymentTypeid int, coupon response.Coup
 
 	}
 	var orderResponse response.OrderResponse
-	err = tx.Raw(`SELECT orders.*,p.type AS payment_type,o.status AS order_status,addresses.*,payment_statuses.status AS payment_status,
+	err = tx.Raw(`SELECT p.type AS payment_type,o.status AS order_status,addresses.*,orders.*,payment_statuses.status AS payment_status,
 	order_items.product_item_id,products.product_name
 	FROM orders JOIN payment_types p ON  
 	p.id=orders.payment_type_id  JOIN order_statuses o ON orders.order_status_id=o.id
@@ -545,7 +545,7 @@ func (o *orderDatabase) DisplayOrderForAdmin(orderId int) (response.AdminOrder, 
 		return response.AdminOrder{}, fmt.Errorf("no such order")
 	}
 	var order response.AdminOrder
-	err := o.DB.Raw(`SELECT orders.*,p.type AS payment_type,o.status AS order_status,addresses.*,payment_statuses.status AS payment_status FROM orders JOIN payment_types p ON  
+	err := o.DB.Raw(`SELECT orders.id AS order_id,orders.payment_type_id,p.type AS payment_type,o.status AS order_status,addresses.*,payment_statuses.status AS payment_status FROM orders JOIN payment_types p ON  
 	p.id=orders.payment_type_id  JOIN order_statuses o ON orders.order_status_id=o.id
 	JOIN addresses ON orders.shipping_address=addresses.id AND is_default=true  
 	JOIN payment_statuses ON orders.payment_status_id=payment_statuses.id

@@ -59,7 +59,7 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 				cart.GET("/", carrtHandler.ListCart)
 				cart.POST("/:product_item_id/addtocart", carrtHandler.AddToCart)
 				cart.DELETE("/:product_item_id/removefromcart", carrtHandler.RemoveFromCart)
-				order := cart.Group("/order")
+				order := cart.Group("/orders")
 				{
 					order.GET("/", orderHandler.ListAllOrders)
 					order.GET("/:order_id", orderHandler.DisplayOrder)
@@ -67,7 +67,7 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 					order.PATCH("/cancel/:order_id", orderHandler.UserCancelOrder)
 				}
 			}
-			order := user.Group("/order")
+			order := user.Group("/orders")
 			{
 				order.GET("/", orderHandler.ListAllOrders)
 				order.GET("/:order_id", orderHandler.DisplayOrder)
@@ -109,7 +109,7 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 				category.GET("/", productHandler.ListAllCategories)
 				category.GET("/:id", productHandler.DisplayCategory)
 			}
-			brand := admin.Group("/brand")
+			brand := admin.Group("/brands")
 			{
 				brand.POST("/create", productHandler.CreateBrand)
 				brand.PATCH("/update/:id", productHandler.UpdateBrand)
@@ -117,7 +117,7 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 				brand.GET("/", productHandler.ListAllBrands)
 				brand.GET("/:brand_id", productHandler.DisplayBrand)
 			}
-			product := admin.Group("/product")
+			product := admin.Group("/products")
 			{
 				product.POST("/create", productHandler.AddProduct)
 				product.PATCH("/update/:product_id", productHandler.UpdateProduct)
@@ -125,7 +125,7 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 				product.GET("/", productHandler.ListAllProducts)
 				product.GET("/:product_id", productHandler.DisplayProduct)
 			}
-			productItem := admin.Group("/productitem")
+			productItem := admin.Group("/productitems")
 			{
 				productItem.POST("/create", productHandler.AddProductItem)
 				productItem.POST("/create/uploadimage/:productItem_id", productHandler.UploadImage)
@@ -133,9 +133,9 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 				productItem.DELETE("/delete/:productItem_id", productHandler.DeleteProductItem)
 				productItem.GET("/", productHandler.ListAllProductItems)
 				productItem.GET("/:productItem_id", productHandler.DisplayProductItem)
-				productItem.DELETE("/:productItem_id/deleteimage", productHandler.DeleteImage)
+				productItem.DELETE("/:image_id/deleteimage", productHandler.DeleteImage)
 			}
-			order := admin.Group("/order")
+			order := admin.Group("/orders")
 			{
 				order.GET("/", orderHandler.ListAllOrdersForAdmin)
 				order.GET("/:order_id", orderHandler.DisplayOrderForAdmin)

@@ -723,8 +723,8 @@ func (cr *ProductHandler) UploadImage(c *gin.Context) {
 	images := make([]string, 0)
 	for _, file := range files {
 		// Upload the file to specific dst.
-		filePath := "../asset/uploads/" + file.Filename
-		c.SaveUploadedFile(file, filePath)
+		// filePath := "../asset/uploads/" + file.Filename
+		// c.SaveUploadedFile(file, filePath)
 
 		objectName := fmt.Sprintf("product_%d_%s", productId, file.Filename)
 		// Upload file to MinIO
@@ -741,7 +741,11 @@ func (cr *ProductHandler) UploadImage(c *gin.Context) {
 			return
 		}
 		defer fileData.Close()
-		_, err = minioClient.PutObject(context.TODO(), viper.GetString("BUCKETNAME"), objectName, fileData, file.Size, minio.PutObjectOptions{})
+		// Set the content type
+		contentType := "image/webp"
+		_, err = minioClient.PutObject(context.TODO(), viper.GetString("BUCKETNAME"), objectName, fileData, file.Size, minio.PutObjectOptions{
+			ContentType: contentType,
+		})
 		if err != nil {
 			c.JSON(http.StatusBadRequest, response.Response{
 				StatusCode: 400,
@@ -777,7 +781,7 @@ func (cr *ProductHandler) UploadImage(c *gin.Context) {
 
 }
 func (p *ProductHandler) DeleteImage(c *gin.Context) {
-	paramId := c.Param("productItem_id")
+	paramId := c.Param("image_id")
 	id, err := strconv.Atoi(paramId)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Response{

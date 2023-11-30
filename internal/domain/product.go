@@ -58,4 +58,5 @@ type Image_items struct {
 	ProductItemId uint
 	ProductItem   ProductItem `gorm:"foreignKey:ProductItemId"`
 	Image         string
+	IsDefault     bool `gorm:"default:false"`
 }
