@@ -41,7 +41,7 @@ func (c *CouponDatabase) UpdateCoupon(coupon helperStruct.UpdateCoupon) (respons
 	}
 	c.DB.Raw(`SELECT EXISTS (select  1 from coupons where name=?)`, coupon.Name).Scan(&exists)
 	if exists {
-		return response.Coupon{}, fmt.Errorf("coupon is already present please add a new unique coupon")
+		return response.Coupon{}, fmt.Errorf("coupon is already present please add a new unique coupon name")
 	}
 	var updatedCoupon response.Coupon
 	updateCoupon := `UPDATE coupons SET name=$1,amount=$2,quantity=$3 WHERE id=$4 RETURNING *`
