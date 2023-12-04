@@ -41,3 +41,7 @@ type AdminOrder struct {
 	OrderStatus   string
 	PaymentStatus string
 }
+type OrderStatus struct {
+	Id     uint
+	Status string
+}

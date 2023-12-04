@@ -133,6 +133,7 @@ func (cr *ProductUsecase) DeleteProductItem(id int) error {
 
 // DisplayProductItem implements interfaces.ProductUsecase.
 func (cr *ProductUsecase) DisplayProductItem(id int) (response.DisplayProductItem, error) {
+
 	productItem, err := cr.productRepo.DisplayProductItem(id)
 	return productItem, err
 }

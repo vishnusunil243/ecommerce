@@ -559,3 +559,50 @@ func (o *orderDatabase) UserIdFromOrder(orderId int) (int, error) {
 	err := o.DB.Raw(`SELECT user_id FROM orders WHERE id=?`, orderId).Scan(&userId).Error
 	return userId, err
 }
+
+// AddOrderStatus implements interfaces.OrderRepository.
+func (o *orderDatabase) AddOrderStatus(orderStatus helperStruct.OrderStatus) (response.OrderStatus, error) {
+	var exists bool
+	chechStatusPresent := `SELECT EXISTS (select 1 from order_statuses where status=?)`
+	o.DB.Raw(chechStatusPresent, orderStatus.Status).Scan(&exists)
+	if exists {
+		return response.OrderStatus{}, fmt.Errorf("this status is already present please add a new one")
+	}
+	var maxId int
+	err := o.DB.Raw(`SELECT COALESCE (MAX(id),0) FROM order_statuses`).Scan(&maxId).Error
+	if err != nil {
+		return response.OrderStatus{}, fmt.Errorf("error retrieving largest id")
+	}
+	var newOrderStatus response.OrderStatus
+	addOrderStatus := `INSERT INTO order_statuses (id,status) VALUES ($1,$2) RETURNING *`
+	err = o.DB.Raw(addOrderStatus, maxId+1, orderStatus.Status).Scan(&newOrderStatus).Error
+	return newOrderStatus, err
+}
+
+// ListAllOrderStatuses implements interfaces.OrderRepository.
+func (o *orderDatabase) ListAllOrderStatuses() ([]response.OrderStatus, error) {
+	var orderStatuses []response.OrderStatus
+	listAllOrderStatuses := `SELECT * FROM order_statuses`
+	err := o.DB.Raw(listAllOrderStatuses).Scan(&orderStatuses).Error
+	return orderStatuses, err
+
+}
+
+// UpdateOrderStatuses implements interfaces.OrderRepository.
+func (o *orderDatabase) UpdateOrderStatuses(orderStatus helperStruct.OrderStatus) (response.OrderStatus, error) {
+	var exists bool
+	chechStatusPresent := `SELECT EXISTS (select 1 from order_statuses where id=?)`
+	o.DB.Raw(chechStatusPresent, orderStatus.Id).Scan(&exists)
+	if !exists {
+		return response.OrderStatus{}, fmt.Errorf("there is no status with the given id")
+	}
+	chechStatusPresentWithName := `SELECT EXISTS (select 1 from order_statuses where status=$1 and id not in ($2))`
+	o.DB.Raw(chechStatusPresentWithName, orderStatus.Status, orderStatus.Id).Scan(&exists)
+	if exists {
+		return response.OrderStatus{}, fmt.Errorf("this status is already present please add a new one")
+	}
+	var updatedOrderStatus response.OrderStatus
+	updateOrderStatus := `UPDATE order_statuses SET status=$1 WHERE id=$2 RETURNING *`
+	err := o.DB.Raw(updateOrderStatus, orderStatus.Status, orderStatus.Id).Scan(&updatedOrderStatus).Error
+	return updatedOrderStatus, err
+}

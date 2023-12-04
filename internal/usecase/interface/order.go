@@ -14,4 +14,7 @@ type OrderUseCase interface {
 	UpdateOrderStatus(updateOrder helperStruct.UpdateOrder) (response.AdminOrder, error)
 	ListAllOrdersForAdmin(queryParams helperStruct.QueryParams) ([]response.AdminOrder, error)
 	DisplayOrderForAdmin(orderId int) (response.AdminOrder, error)
+	AddOrderStatus(orderStatus helperStruct.OrderStatus) (response.OrderStatus, error)
+	UpdateOrderStatuses(orderStatus helperStruct.OrderStatus) (response.OrderStatus, error)
+	ListAllOrderStatuses() ([]response.OrderStatus, error)
 }

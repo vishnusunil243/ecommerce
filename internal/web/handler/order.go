@@ -313,3 +313,79 @@ func (o *OrderHandler) DisplayOrderForAdmin(c *gin.Context) {
 	})
 
 }
+func (o *OrderHandler) AddOrderStatus(c *gin.Context) {
+	var orderStatus helperStruct.OrderStatus
+	err := c.BindJSON(&orderStatus)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error binding json",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	newOrderStatus, err := o.orderUsecase.AddOrderStatus(orderStatus)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error adding new orderStatus",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "orderstatus added successfully",
+		Data:       newOrderStatus,
+		Errors:     nil,
+	})
+}
+func (o *OrderHandler) UpdateOrderStatuses(c *gin.Context) {
+	var orderStatus helperStruct.OrderStatus
+	err := c.BindJSON(&orderStatus)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error binding json",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	updatedOrderStatus, err := o.orderUsecase.UpdateOrderStatuses(orderStatus)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error updating order statuses",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "order status updated successfully",
+		Data:       updatedOrderStatus,
+		Errors:     nil,
+	})
+}
+func (o *OrderHandler) ListAllOrderStatuses(c *gin.Context) {
+	orderStatuses, err := o.orderUsecase.ListAllOrderStatuses()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error listing all orderstatuses",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "orderstatuses listed successfully",
+		Data:       orderStatuses,
+		Errors:     nil,
+	})
+}

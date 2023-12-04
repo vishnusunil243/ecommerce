@@ -198,7 +198,9 @@ func (c *cartDatabase) ListCart(userId int) (response.ViewCart, error) {
     pi.storage,
     ci.quantity,
     pi.price AS price_per_unit,
-    (pi.price * ci.quantity) AS total 
+    (pi.price * ci.quantity) AS total ,
+	((pi.price*discount_percent)/100)*(ci.quantity) AS discount_price,
+	(pi.price * ci.quantity)-((pi.price*discount_percent)/100)*(ci.quantity) AS discounted_price
    FROM 
     cart_items ci 
     JOIN 
@@ -207,6 +209,10 @@ func (c *cartDatabase) ListCart(userId int) (response.ViewCart, error) {
     products pr ON pi.product_id = pr.id
     JOIN 
     products p ON pi.product_id = p.id 
+	LEFT JOIN
+	brands ON brands.brandname=p.brand
+	LEFT JOIN 
+	discounts ON discounts.brand_id=brands.id
     WHERE 
     ci.carts_id = $1`
 	err = tx.Raw(getProductDetails, cart.Id).Scan(&productDetails).Error

@@ -72,3 +72,21 @@ func (o *OrderUseCase) DisplayOrderForAdmin(orderId int) (response.AdminOrder, e
 	order, err := o.orderRepo.DisplayOrderForAdmin(orderId)
 	return order, err
 }
+
+// AddOrderStatus implements interfaces.OrderUseCase.
+func (o *OrderUseCase) AddOrderStatus(orderStatus helperStruct.OrderStatus) (response.OrderStatus, error) {
+	newOrderStatus, err := o.orderRepo.AddOrderStatus(orderStatus)
+	return newOrderStatus, err
+}
+
+// ListAllOrderStatuses implements interfaces.OrderUseCase.
+func (o *OrderUseCase) ListAllOrderStatuses() ([]response.OrderStatus, error) {
+	orderStatuses, err := o.orderRepo.ListAllOrderStatuses()
+	return orderStatuses, err
+}
+
+// UpdateOrderStatuses implements interfaces.OrderUseCase.
+func (o *OrderUseCase) UpdateOrderStatuses(orderStatus helperStruct.OrderStatus) (response.OrderStatus, error) {
+	updatedOrderStatus, err := o.orderRepo.UpdateOrderStatuses(orderStatus)
+	return updatedOrderStatus, err
+}

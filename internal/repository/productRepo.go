@@ -383,10 +383,14 @@ func (c *ProductDatabase) UpdateProductItem(id int, productItem helperStruct.Pro
 func (c *ProductDatabase) ListAllProductItems(queryParams helperStruct.QueryParams) ([]response.ProductItem, error) {
 	var productItems []response.ProductItem
 	getProductItemDetails := `
-    SELECT product_items.*, products.description,products.product_name,products.brand,image_items.image,categories.category_name
+    SELECT product_items.*, products.description,products.product_name,products.brand,image_items.image,categories.category_name,
+	(discounts.discount_percent/100)*product_items.price AS discount_price,
+	product_items.price-((discounts.discount_percent/100)*product_items.price) AS discounted_price
     FROM product_items
     JOIN products ON product_items.product_id = products.id
     JOIN categories ON products.category_id = categories.id
+	LEFT JOIN brands ON brands.brandname=products.brand
+	LEFT JOIN discounts ON brands.id=discounts.brand_id
 	LEFT JOIN image_items ON product_items.id=image_items.product_item_id AND image_items.is_default=true
 `
 	if queryParams.Query != "" && queryParams.Filter != "" {
@@ -456,17 +460,23 @@ func (c *ProductDatabase) DisplayProductItem(id int) (response.DisplayProductIte
 		return response.DisplayProductItem{}, fmt.Errorf("no productitem found with given id")
 	}
 	selectQuery := `
-    SELECT product_items.*, products.description,products.product_name,products.brand,image_items.image,categories.category_name
+    SELECT product_items.*, products.description,products.product_name,products.brand,image_items.image,categories.category_name,
+	(discounts.discount_percent/100)*product_items.price AS discount_price,
+	product_items.price-((discounts.discount_percent/100)*product_items.price) AS discounted_price
     FROM product_items
     JOIN products ON product_items.product_id = products.id
     JOIN categories ON products.category_id = categories.id
+	LEFT JOIN brands ON products.brand=brands.brandname
+	LEFT JOIN discounts ON brands.id=discounts.brand_id
 	LEFT JOIN image_items ON product_items.id=image_items.product_item_id AND is_default=true
+
 	WHERE product_items.id=?
 `
 	err := c.DB.Raw(selectQuery, id).Scan(&productItem).Error
 	if err != nil {
 		return response.DisplayProductItem{}, err
 	}
+
 	var images []response.Image
 	displayImages := `SELECT  id,image FROM image_items WHERE product_item_id=?`
 	err = c.DB.Raw(displayImages, id).Scan(&images).Error

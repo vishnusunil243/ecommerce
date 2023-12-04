@@ -42,7 +42,7 @@ type ProductItem struct {
 	Storage           int
 	Camera            int
 	Graphic_Processor string
-	Price             int
+	Price             float64
 	Created_at        time.Time
 	Updated_at        time.Time
 }

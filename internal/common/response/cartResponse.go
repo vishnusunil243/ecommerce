@@ -10,6 +10,8 @@ type DisplayCart struct {
 	Graphic_Processor string
 	Quantity          int
 	PricePerUnit      float64
+	DiscountPrice     float64 `json:"discount_price,omitempty"`
+	DiscountedPrice   float64 `json:"discounted_price,omitempty"`
 	Total             float64
 }
 type ViewCart struct {

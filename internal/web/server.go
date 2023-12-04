@@ -14,7 +14,8 @@ type ServerHTTP struct {
 
 func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.AdminHandler,
 	productHandler *handler.ProductHandler, superadminHandler *handler.SuperAdminHandler, carrtHandler *handler.CartHandler,
-	orderHandler *handler.OrderHandler, walletHandler *handler.WalletHandler, paymentHandler *handler.PaymentHandler, couponHandler *handler.CouponHandler,
+	orderHandler *handler.OrderHandler, walletHandler *handler.WalletHandler, paymentHandler *handler.PaymentHandler,
+	couponHandler *handler.CouponHandler, discountHandler *handler.DiscountHandler,
 	wishListHandler *handler.WishlistHandler) *ServerHTTP {
 	engine := gin.New()
 	engine.Use(gin.Logger())
@@ -158,6 +159,19 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 				coupon.PATCH("/:coupon_id/enable", couponHandler.EnableCoupon)
 				coupon.GET("/", couponHandler.ListAllCoupons)
 				coupon.GET("/:coupon_id", couponHandler.DisplayCoupon)
+			}
+			orderStatus := admin.Group("/orderstatuses")
+			{
+				orderStatus.GET("/", orderHandler.ListAllOrderStatuses)
+				orderStatus.POST("/add", orderHandler.AddOrderStatus)
+				orderStatus.PATCH("/update", orderHandler.UpdateOrderStatuses)
+			}
+			discount := admin.Group("/discount")
+			{
+				discount.GET("/", discountHandler.ListAllDiscounts)
+				discount.PATCH("/:discountId", discountHandler.UpdateDiscount)
+				discount.DELETE("/:discountId", discountHandler.DeleteDiscount)
+				discount.POST("/add", discountHandler.AddDiscount)
 			}
 
 		}

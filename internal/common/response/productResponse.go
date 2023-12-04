@@ -34,8 +34,10 @@ type ProductItem struct {
 	ScreenSize        float64
 	Storage           int
 	Graphic_Processor string
-	Price             int
-	Image             string `json:"image,omitempty"`
+	Price             float64
+	DiscountPrice     float64 `json:"discount_price,omitempty"`
+	DiscountedPrice   float64 `json:"discounted_price,omitempty"`
+	Image             string  `json:"image,omitempty"`
 }
 type ImageResponse struct {
 	ID    int    `json:"id"`

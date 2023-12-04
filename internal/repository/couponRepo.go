@@ -39,7 +39,7 @@ func (c *CouponDatabase) UpdateCoupon(coupon helperStruct.UpdateCoupon) (respons
 	if !exists {
 		return response.Coupon{}, fmt.Errorf("no coupon found with given id")
 	}
-	c.DB.Raw(`SELECT EXISTS (select  1 from coupons where name=?)`, coupon.Name).Scan(&exists)
+	c.DB.Raw(`SELECT EXISTS (select  1 from coupons where name=$1 and id not in ($2))`, coupon.Name, coupon.Id).Scan(&exists)
 	if exists {
 		return response.Coupon{}, fmt.Errorf("coupon is already present please add a new unique coupon name")
 	}
