@@ -15,7 +15,7 @@ type ServerHTTP struct {
 func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.AdminHandler,
 	productHandler *handler.ProductHandler, superadminHandler *handler.SuperAdminHandler, carrtHandler *handler.CartHandler,
 	orderHandler *handler.OrderHandler, walletHandler *handler.WalletHandler, paymentHandler *handler.PaymentHandler,
-	couponHandler *handler.CouponHandler, discountHandler *handler.DiscountHandler,
+	couponHandler *handler.CouponHandler, discountHandler *handler.DiscountHandler, referralHandler *handler.ReferralHandler,
 	wishListHandler *handler.WishlistHandler) *ServerHTTP {
 	engine := gin.New()
 	engine.Use(gin.Logger())
@@ -86,6 +86,10 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 				wishlist.GET("/", wishListHandler.ListAllWishlist)
 				wishlist.GET("/:product_item_id", wishListHandler.DisplayWishlistProduct)
 				wishlist.POST("/:product_item_id/addtocart", carrtHandler.AddToCart)
+			}
+			referral := user.Group("/referrals")
+			{
+				referral.POST("/", referralHandler.ReferralOffer)
 			}
 		}
 		user.Use(middleware.UserIsBlocked)

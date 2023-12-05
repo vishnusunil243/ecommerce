@@ -212,7 +212,7 @@ func (c *cartDatabase) ListCart(userId int) (response.ViewCart, error) {
 	LEFT JOIN
 	brands ON brands.brandname=p.brand
 	LEFT JOIN 
-	discounts ON discounts.brand_id=brands.id
+	discounts ON discounts.brand_id=brands.id AND expiry_date>NOW()
     WHERE 
     ci.carts_id = $1`
 	err = tx.Raw(getProductDetails, cart.Id).Scan(&productDetails).Error
@@ -220,9 +220,17 @@ func (c *cartDatabase) ListCart(userId int) (response.ViewCart, error) {
 		tx.Rollback()
 		return response.ViewCart{}, err
 	}
+	var totalWithDiscount float64
 	var carts response.ViewCart
 	carts.CartTotal = cart.Total
 	carts.SubTotal = cart.SubTotal
+	for _, cartItem := range productDetails {
+		if cartItem.DiscountPrice != 0 {
+			cartItem.Total = cartItem.DiscountedPrice
+		}
+		totalWithDiscount += cartItem.Total
+	}
+	carts.CartTotal = totalWithDiscount
 	carts.CartItems = productDetails
 	if err = tx.Commit().Error; err != nil {
 		tx.Rollback()

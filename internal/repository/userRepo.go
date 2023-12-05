@@ -107,9 +107,10 @@ func (c *userDatabase) ViewUserProfile(id int) (response.UserProfile, error) {
 	var userProfile response.UserProfile
 
 	selectProfileQuery := `
-		SELECT users.*, addresses.*
+		SELECT users.*, addresses.*,referrals.referral_id
 		FROM users
 		LEFT JOIN addresses ON users.id = addresses.users_id AND addresses.is_default=true
+		LEFT JOIN referrals ON referrals.user_id=users.id
 		WHERE users.id = ? 
 	`
 

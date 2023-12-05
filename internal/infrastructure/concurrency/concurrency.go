@@ -76,6 +76,11 @@ func (un *Concurrency) Concurrency() {
 			`).Error; err != nil {
 				fmt.Println(err)
 			}
+			if err := un.DB.Exec(`
+			DELETE FROM discounts WHERE expiry_date<NOW()
+			`).Error; err != nil {
+				fmt.Println(err)
+			}
 			un.mu.Unlock()
 
 			fmt.Println("worked")

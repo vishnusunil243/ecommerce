@@ -31,6 +31,7 @@ func (c *UserUseCase) UserSignup(user helperStruct.UserReq) (response.UserData, 
 	}
 	user.Password = string(hash)
 	userData, err := c.userRepo.UserSignUp(user)
+
 	return userData, err
 }
 

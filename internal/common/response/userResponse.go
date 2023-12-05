@@ -20,10 +20,11 @@ type UserDetails struct {
 	ReasonForBlocking string `json:",omitempty"`
 }
 type UserProfile struct {
-	Name    string `json:"name"`
-	Email   string `json:"email"`
-	Mobile  string `json:"mobile"`
-	Address `gorm:"embedded" json:"address"`
+	Name       string `json:"name"`
+	Email      string `json:"email"`
+	Mobile     string `json:"mobile"`
+	ReferralId string `json:"ReferralId,omitempty"`
+	Address    `gorm:"embedded" json:"address"`
 }
 type Address struct {
 	House_number string `json:"house_number" `

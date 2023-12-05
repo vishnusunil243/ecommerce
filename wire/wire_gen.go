@@ -28,7 +28,9 @@ func InitializeAPI(cfg config.Config) (*http.ServerHTTP, error) {
 	cartUseCase := usecase.NewCartUseCase(cartRepository)
 	walletRepository := repository.NewWalletRepo(gormDB)
 	walletUseCase := usecase.NewWalletUseCase(walletRepository)
-	userHandler := handler.NewUserHandler(userUseCase, cartUseCase, walletUseCase)
+	referralRepository := repository.NewReferralRepo(gormDB)
+	referralUseCase := usecase.NewReferralUsecase(referralRepository)
+	userHandler := handler.NewUserHandler(userUseCase, cartUseCase, walletUseCase, referralUseCase)
 	adminRepository := repository.NewAdminRepo(gormDB)
 	adminUseCase := usecase.NewAdminUsecase(adminRepository)
 	adminHandler := handler.NewAdminHandler(adminUseCase)
@@ -52,9 +54,10 @@ func InitializeAPI(cfg config.Config) (*http.ServerHTTP, error) {
 	discountRepository := repository.NewDiscountRepo(gormDB)
 	discountUseCase := usecase.NewDiscountUseCase(discountRepository)
 	discountHandler := handler.NewDiscountHandler(discountUseCase)
+	referralHandler := handler.NewReferralHandler(referralUseCase)
 	wishlistRepository := repository.NewWishlistRepo(gormDB)
 	wishlistUseCase := usecase.NewWishlistUseCase(wishlistRepository)
 	wishlistHandler := handler.NewWishlistHandler(wishlistUseCase)
-	serverHTTP := http.NewServerHTTP(userHandler, adminHandler, productHandler, superAdminHandler, cartHandler, orderHandler, walletHandler, paymentHandler, couponHandler, discountHandler, wishlistHandler)
+	serverHTTP := http.NewServerHTTP(userHandler, adminHandler, productHandler, superAdminHandler, cartHandler, orderHandler, walletHandler, paymentHandler, couponHandler, discountHandler, referralHandler, wishlistHandler)
 	return serverHTTP, nil
 }

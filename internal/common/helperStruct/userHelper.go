@@ -48,3 +48,6 @@ type UpdateEmail struct {
 	Email string `json:"email"`
 	OTP   string `json:"otp"`
 }
+type ReferralOffer struct {
+	ReferralId string `json:"referralId"`
+}

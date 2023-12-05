@@ -32,8 +32,8 @@ func (d *DiscountDatabase) AddDiscount(discount helperStruct.Discount) (response
 		return response.Discount{}, fmt.Errorf("error retrieving maxId")
 	}
 	var newDiscount response.Discount
-	addDiscount := `INSERT INTO discounts(id,discount_percent,brand_id,max_discount_amount,min_purchase_amount,expiry_date) VALUES($1,$2,$3,$4,$5,$6)RETURNING *`
-	err = d.DB.Exec(addDiscount, maxId+1, discount.DiscountPercent, discount.BrandId, discount.MaxDiscountAmount, discount.MinPurchaseAmount, discount.ExpiryDate).Error
+	addDiscount := `INSERT INTO discounts(id,discount_percent,brand_id,expiry_date) VALUES($1,$2,$3,$4)RETURNING *`
+	err = d.DB.Exec(addDiscount, maxId+1, discount.DiscountPercent, discount.BrandId, discount.ExpiryDate).Error
 	if err != nil {
 		return response.Discount{}, err
 	}
@@ -71,8 +71,8 @@ func (d *DiscountDatabase) UpdateDiscount(discount helperStruct.Discount, discou
 		return response.Discount{}, fmt.Errorf("no discount found with the given id")
 	}
 	var updatedDiscount response.Discount
-	updateDiscount := `UPDATE discounts SET max_discount_amount=$1,min_purchase_amount=$2,expiry_date=$3,discount_percent=$4,brand_id=$5 WHERE id=$6`
-	err := d.DB.Exec(updateDiscount, discount.MaxDiscountAmount, discount.MinPurchaseAmount, discount.ExpiryDate, discount.DiscountPercent, discount.BrandId, discountId).Error
+	updateDiscount := `UPDATE discounts SET expiry_date=$1,discount_percent=$2,brand_id=$3 WHERE id=$4`
+	err := d.DB.Exec(updateDiscount, discount.ExpiryDate, discount.DiscountPercent, discount.BrandId, discountId).Error
 	if err != nil {
 		return response.Discount{}, err
 	}

@@ -14,16 +14,18 @@ import (
 )
 
 type UserHandler struct {
-	userUseCase   services.UserUseCase
-	cartUseCase   services.CartUseCase
-	walletUsecase services.WalletUseCase
+	userUseCase     services.UserUseCase
+	cartUseCase     services.CartUseCase
+	walletUsecase   services.WalletUseCase
+	referralUsecase services.ReferralUseCase
 }
 
-func NewUserHandler(usecase services.UserUseCase, cartusecase services.CartUseCase, walletUsecase services.WalletUseCase) *UserHandler {
+func NewUserHandler(usecase services.UserUseCase, cartusecase services.CartUseCase, walletUsecase services.WalletUseCase, referralUsecase services.ReferralUseCase) *UserHandler {
 	return &UserHandler{
-		userUseCase:   usecase,
-		cartUseCase:   cartusecase,
-		walletUsecase: walletUsecase,
+		userUseCase:     usecase,
+		cartUseCase:     cartusecase,
+		walletUsecase:   walletUsecase,
+		referralUsecase: referralUsecase,
 	}
 }
 func (cr *UserHandler) UserSignup(c *gin.Context) {
@@ -98,6 +100,15 @@ func (cr *UserHandler) UserSignup(c *gin.Context) {
 			Errors:     err.Error(),
 		})
 		return
+	}
+	err = cr.referralUsecase.AddReferral(userData.Id, userData.Mobile)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error creating referral id",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
 	}
 
 	c.JSON(http.StatusCreated, response.Response{

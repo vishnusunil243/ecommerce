@@ -43,6 +43,51 @@ func (c *orderDatabase) OrderAll(id int, paymentTypeid int, coupon response.Coup
 		tx.Rollback()
 		return response.ResponseOrder{}, fmt.Errorf("there are no items in cart")
 	}
+	var productDetails []response.DisplayCart
+	getProductDetails := `SELECT 
+    p.brand,
+    pr.product_name,
+    pi.sku AS product_sku,
+    pi.color,
+    pi.ram,
+    pi.battery,
+    pi.graphic_processor,
+    pi.storage,
+    ci.quantity,
+    pi.price AS price_per_unit,
+    (pi.price * ci.quantity) AS total ,
+	((pi.price*discount_percent)/100)*(ci.quantity) AS discount_price,
+	(pi.price * ci.quantity)-((pi.price*discount_percent)/100)*(ci.quantity) AS discounted_price
+   FROM 
+    cart_items ci 
+    JOIN 
+    product_items pi ON ci.product_item_id = pi.id
+    JOIN 
+    products pr ON pi.product_id = pr.id
+    JOIN 
+    products p ON pi.product_id = p.id 
+	LEFT JOIN
+	brands ON brands.brandname=p.brand
+	LEFT JOIN 
+	discounts ON discounts.brand_id=brands.id AND expiry_date>NOW()
+    WHERE 
+    ci.carts_id = $1`
+	err = tx.Raw(getProductDetails, cart.Id).Scan(&productDetails).Error
+	if err != nil {
+		tx.Rollback()
+		return response.ResponseOrder{}, err
+	}
+	var totalWithDiscount float64
+	var totalDiscountAmount float64
+	for _, item := range productDetails {
+		if item.DiscountedPrice != 0 {
+			item.Total = item.DiscountedPrice
+			totalDiscountAmount += item.DiscountPrice
+
+		}
+		totalWithDiscount += item.Total
+	}
+	cart.Total = int(totalWithDiscount)
 	var addressId int
 	findAddress := `SELECT id FROM addresses WHERE users_id=? AND is_default=true`
 	err = tx.Raw(findAddress, id).Scan(&addressId).Error
@@ -93,7 +138,15 @@ func (c *orderDatabase) OrderAll(id int, paymentTypeid int, coupon response.Coup
 		return response.ResponseOrder{}, fmt.Errorf("error placing order")
 	}
 	var cartItems []helperStruct.CartItems
-	cartDetail := `select ci.product_item_id,ci.quantity,pi.price,pi.qty_in_stock  from cart_items ci join product_items pi on ci.product_item_id = pi.id where ci.carts_id=$1`
+	cartDetail := `select ci.product_item_id,ci.quantity,pi.price,pi.qty_in_stock,
+	            ((pi.price*discount_percent)/100)*(ci.quantity) AS discount_price,
+            	(pi.price * ci.quantity)-((pi.price*discount_percent)/100)*(ci.quantity) AS discounted_price
+	             from cart_items ci 
+	             join product_items pi on ci.product_item_id = pi.id
+				 left join products on products.id=pi.id
+				 left join brands on brands.brandname=products.brand 
+				 left join discounts on discounts.brand_id=brands.id AND expiry_date>NOW()
+				 where ci.carts_id=$1`
 	err = tx.Raw(cartDetail, cart.Id).Scan(&cartItems).Error
 	if err != nil {
 		tx.Rollback()
@@ -105,6 +158,9 @@ func (c *orderDatabase) OrderAll(id int, paymentTypeid int, coupon response.Coup
 		//check whether the item is available
 		if items.Quantity > items.QtyInStock {
 			return response.ResponseOrder{}, fmt.Errorf("out of stock")
+		}
+		if items.DiscountedPrice != 0 {
+			items.Price = int(items.DiscountedPrice)
 		}
 		insetOrderItems := `INSERT INTO order_items (orders_id,product_item_id,quantity,price) VALUES($1,$2,$3,$4)`
 		err = tx.Exec(insetOrderItems, order.Id, items.ProductItemId, items.Quantity, items.Price).Error
@@ -209,7 +265,7 @@ func (c *orderDatabase) OrderAll(id int, paymentTypeid int, coupon response.Coup
 	}
 	if coupon.Name != "" {
 		orderResponse.CouponCode = coupon.Name
-		orderResponse.CouponAmount = coupon.Amount
+		orderResponse.CouponAmount = -coupon.Amount
 		orderResponse.SubTotal = cart.SubTotal
 		err := tx.Exec(`UPDATE user_coupons SET order_id=$1 WHERE coupon_id=$2`, order.Id, coupon.Id).Error
 		if err != nil {
@@ -218,6 +274,7 @@ func (c *orderDatabase) OrderAll(id int, paymentTypeid int, coupon response.Coup
 			return response.ResponseOrder{}, err
 		}
 	}
+	orderResponse.DiscountPrice = int(-totalDiscountAmount)
 	var responseOrder response.ResponseOrder
 	var orderProducts []response.OrderProduct
 	err = tx.Raw(`SELECT order_items.product_item_id,products.product_name,order_items.quantity FROM orders JOIN order_items ON orders.id=order_items.orders_id
@@ -384,7 +441,7 @@ func (o *orderDatabase) DisplayOrder(userId int, orderId int) (response.Response
 	var orderProducts []response.OrderProduct
 	var res response.ResponseOrder
 	err := o.DB.Raw(`SELECT p.type AS payment_type,o.status AS order_status,addresses.*,orders.*,payment_statuses.status AS payment_status,order_items.product_item_id AS product_item_id
-	,products.product_name,coupons.name AS coupon_code,coupons.amount AS coupon_amount 
+	,products.product_name,coupons.name AS coupon_code,coupons.amount AS coupon_amount
 	FROM orders JOIN payment_types p ON  
 	p.id=orders.payment_type_id LEFT JOIN order_statuses o ON orders.order_status_id=o.id
 	LEFT JOIN order_items ON orders.id=order_items.orders_id
@@ -397,9 +454,21 @@ func (o *orderDatabase) DisplayOrder(userId int, orderId int) (response.Response
 	if err != nil {
 		return response.ResponseOrder{}, err
 	}
-	err = o.DB.Raw(`SELECT order_items.product_item_id,products.product_name,order_items.quantity FROM orders JOIN order_items ON orders.id=order_items.orders_id
+	err = o.DB.Raw(`SELECT order_items.product_item_id,products.product_name,order_items.quantity,product_items.price,
+	                (discounts.discount_percent/100)*product_items.price AS discount_price
+	                FROM orders JOIN order_items ON orders.id=order_items.orders_id
 	                JOIN products ON order_items.product_item_id=products.id
+					LEFT JOIN brands ON brands.brandname=products.brand
+					LEFT JOIN discounts ON discounts.brand_id=brands.id AND expiry_date>NOW()
+					LEFT JOIN product_items ON product_items.id=order_items.product_item_id
 	                WHERE user_id=$1 AND orders.id=$2`, userId, orderId).Scan(&orderProducts).Error
+	var totalPriceWithoutDiscount int
+	for _, item := range orderProducts {
+		totalPriceWithoutDiscount += (item.Price * item.Quantity)
+	}
+	order.CouponAmount = -order.CouponAmount
+	order.SubTotal = totalPriceWithoutDiscount
+	order.DiscountPrice = -(order.SubTotal - order.OrderTotal + order.CouponAmount)
 	order.Id = uint(orderId)
 	res.OrderProducts = orderProducts
 	res.OrderResponse = order

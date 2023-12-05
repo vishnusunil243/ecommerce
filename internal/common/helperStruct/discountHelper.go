@@ -5,9 +5,7 @@ import (
 )
 
 type Discount struct {
-	DiscountPercent   float64
-	MaxDiscountAmount int
-	MinPurchaseAmount int
-	BrandId           uint
-	ExpiryDate        time.Time
+	DiscountPercent float64
+	BrandId         uint
+	ExpiryDate      time.Time
 }

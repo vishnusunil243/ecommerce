@@ -10,16 +10,19 @@ type OrderResponse struct {
 	PaymentTypeId uint
 	PaymentType   string
 	Address       `gorm:"embedded" json:"ShippingAddress,omitempty"`
-	OrderTotal    int
 	OrderStatusID uint
 	OrderStatus   string
 	PaymentStatus string
 	CouponCode    string `json:"coupon,omitempty"`
-	CouponAmount  int    `json:"couponAmount,omitempty"`
 	SubTotal      int    `json:"SubTotal,omitempty"`
+	CouponAmount  int    `json:"couponAmount,omitempty"`
+	DiscountPrice int    `json:"discount_price,omitempty"`
+	OrderTotal    int
 }
 type OrderProduct struct {
 	ProductItemId uint
+	Price         int     `json:"price,omitempty"`
+	DiscountPrice float64 `json:"DiscountPrice,omitempty"`
 	ProductName   string
 	Quantity      int
 }

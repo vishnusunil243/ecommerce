@@ -6,10 +6,12 @@ type Cart struct {
 }
 
 type CartItems struct {
-	ProductItemId int
-	Quantity      int
-	Price         int
-	QtyInStock    int
+	ProductItemId   int
+	Quantity        int
+	Price           int
+	DiscountPrice   float64
+	DiscountedPrice float64
+	QtyInStock      int
 }
 
 type UpdateOrder struct {

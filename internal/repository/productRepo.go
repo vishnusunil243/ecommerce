@@ -390,7 +390,7 @@ func (c *ProductDatabase) ListAllProductItems(queryParams helperStruct.QueryPara
     JOIN products ON product_items.product_id = products.id
     JOIN categories ON products.category_id = categories.id
 	LEFT JOIN brands ON brands.brandname=products.brand
-	LEFT JOIN discounts ON brands.id=discounts.brand_id
+	LEFT JOIN discounts ON brands.id=discounts.brand_id AND expiry_date>NOW()
 	LEFT JOIN image_items ON product_items.id=image_items.product_item_id AND image_items.is_default=true
 `
 	if queryParams.Query != "" && queryParams.Filter != "" {
@@ -467,7 +467,7 @@ func (c *ProductDatabase) DisplayProductItem(id int) (response.DisplayProductIte
     JOIN products ON product_items.product_id = products.id
     JOIN categories ON products.category_id = categories.id
 	LEFT JOIN brands ON products.brand=brands.brandname
-	LEFT JOIN discounts ON brands.id=discounts.brand_id
+	LEFT JOIN discounts ON brands.id=discounts.brand_id AND expiry_date>NOW()
 	LEFT JOIN image_items ON product_items.id=image_items.product_item_id AND is_default=true
 
 	WHERE product_items.id=?
