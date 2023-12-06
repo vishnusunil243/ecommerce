@@ -19,11 +19,11 @@ type ProductRepository interface {
 	AddProduct(product helperStruct.Product) (response.Product, error)
 	UpdateProduct(product helperStruct.Product, id int) (response.Product, error)
 	DeleteProduct(id int) error
-	ListAllProducts(queryParams helperStruct.QueryParams) ([]response.Product, error)
+	ListAllProducts(queryParams helperStruct.QueryParams) ([]response.Product, int, error)
 	DisplayProduct(id int) (response.Product, error)
 	AddProductItem(productItem helperStruct.ProductItem) (response.ProductItem, error)
 	UpdateProductItem(id int, productItem helperStruct.ProductItem) (response.ProductItem, error)
-	ListAllProductItems(queryParams helperStruct.QueryParams) ([]response.ProductItem, error)
+	ListAllProductItems(queryParams helperStruct.QueryParams) ([]response.ProductItem, int, error)
 	// UploadImage(Image helperStruct.ImageHelper) (response.ImageResponse, error)
 	UploadImage(filepath string, productid int) (response.Image, error)
 	DeleteImage(id int) error

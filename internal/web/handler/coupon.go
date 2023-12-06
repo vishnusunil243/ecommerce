@@ -128,7 +128,16 @@ func (cu *CouponHandler) DisableCoupon(c *gin.Context) {
 	})
 }
 func (cu *CouponHandler) ListAllCoupons(c *gin.Context) {
-	coupns, err := cu.couponUsecase.ListAllCoupons()
+	var queryParams helperStruct.QueryParams
+	queryParams.Page, _ = strconv.Atoi(c.Query("page"))
+	queryParams.Limit, _ = strconv.Atoi(c.Query("limit"))
+	queryParams.SortBy = c.Query("sort_by")
+	queryParams.Filter = c.Query("filter")
+	queryParams.Query = c.Query("query")
+	if c.Query("sort_desc") != "" {
+		queryParams.SortDesc = true
+	}
+	coupons, totalCount, err := cu.couponUsecase.ListAllCoupons(queryParams)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Response{
 			StatusCode: 400,
@@ -138,10 +147,26 @@ func (cu *CouponHandler) ListAllCoupons(c *gin.Context) {
 		})
 		return
 	}
+	if queryParams.Limit == 0 {
+		queryParams.Limit = 10
+	}
+	responseStruct := struct {
+		Coupons   []response.Coupon
+		NoOfPages int
+	}{
+		Coupons:   coupons,
+		NoOfPages: totalCount / queryParams.Limit,
+	}
+	if responseStruct.NoOfPages == 0 {
+		responseStruct.NoOfPages = 1
+	} else if totalCount%queryParams.Limit != 0 {
+		responseStruct.NoOfPages = responseStruct.NoOfPages + 1
+	}
+
 	c.JSON(http.StatusOK, response.Response{
 		StatusCode: 200,
 		Message:    "coupons listed successfully",
-		Data:       coupns,
+		Data:       responseStruct,
 		Errors:     nil,
 	})
 }

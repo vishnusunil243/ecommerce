@@ -72,6 +72,7 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 			{
 				order.GET("/", orderHandler.ListAllOrders)
 				order.GET("/:order_id", orderHandler.DisplayOrder)
+				order.GET("/:order_id/download", orderHandler.InvoiceDownload)
 				order.POST("/:order_id/return", orderHandler.ReturnOrder)
 			}
 			wallet := user.Group("/wallet")

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"gorm.io/gorm"
+	"main.go/internal/common/helperStruct"
 	"main.go/internal/common/response"
 	"main.go/internal/domain"
 	"main.go/internal/repository/interfaces"
@@ -48,9 +49,22 @@ func (w *walletRepository) DisplayWallet(userId int) (response.Wallet, error) {
 }
 
 // WalletHistory implements interfaces.WalletRepository.
-func (w *walletRepository) WalletHistory(userid int) ([]response.WalletHistories, error) {
+func (w *walletRepository) WalletHistory(userid int, queryParams helperStruct.QueryParams) ([]response.WalletHistories, int, error) {
 	var walletHistories []response.WalletHistories
-	walletHistory := `SELECT * FROM wallet_histories WHERE user_id=$1`
-	err := w.DB.Raw(walletHistory, userid).Scan(&walletHistories).Error
-	return walletHistories, err
+	walletHistory := `SELECT * FROM wallet_histories WHERE user_id=?`
+	var count int
+	getTotalCount := fmt.Sprintf("SELECT COUNT(*) FROM (%s%d)", walletHistory[:len(walletHistory)-1], userid)
+	err := w.DB.Raw(getTotalCount).Scan(&count).Error
+	if err != nil {
+		return []response.WalletHistories{}, 0, err
+	}
+	walletHistory = fmt.Sprintf("%s ORDER BY time DESC", walletHistory)
+	if queryParams.Limit != 0 && queryParams.Page != 0 {
+		walletHistory = fmt.Sprintf("%s LIMIT %d OFFSET %d", walletHistory, queryParams.Limit, (queryParams.Page-1)*queryParams.Limit)
+	}
+	if queryParams.Limit == 0 || queryParams.Page == 0 {
+		walletHistory = fmt.Sprintf("%s LIMIT 10 OFFSET 0", walletHistory)
+	}
+	err = w.DB.Raw(walletHistory, userid).Scan(&walletHistories).Error
+	return walletHistories, count, err
 }

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"fmt"
+	"strings"
 
 	"gorm.io/gorm"
 	"main.go/internal/common/helperStruct"
@@ -63,11 +64,34 @@ func (c *CouponDatabase) DisableCoupon(couponId int) error {
 }
 
 // ListAllCoupons implements interfaces.CouponRepository.
-func (c *CouponDatabase) ListAllCoupons() ([]response.Coupon, error) {
+func (c *CouponDatabase) ListAllCoupons(queryParams helperStruct.QueryParams) ([]response.Coupon, int, error) {
 	var coupons []response.Coupon
 	getAllCoupons := `SELECT * FROM coupons`
-	err := c.DB.Raw(getAllCoupons).Scan(&coupons).Error
-	return coupons, err
+	if queryParams.Query != "" && queryParams.Filter != "" {
+		getAllCoupons = fmt.Sprintf("%s WHERE LOWER(%s) LIKE '%%%s%%'", getAllCoupons, queryParams.Filter, strings.ToLower(queryParams.Query))
+	}
+	var count int
+	getTotalCount := fmt.Sprintf("SELECT COUNT(*) FROM (%s)", getAllCoupons)
+	err := c.DB.Raw(getTotalCount).Scan(&count).Error
+	if err != nil {
+		return []response.Coupon{}, 0, err
+	}
+	if queryParams.SortBy != "" {
+		if queryParams.SortDesc {
+			getAllCoupons = fmt.Sprintf("%s ORDER BY %s DESC", getAllCoupons, queryParams.SortBy)
+		} else {
+			getAllCoupons = fmt.Sprintf("%s ORDER BY %s ASC", getAllCoupons, queryParams.SortBy)
+		}
+	}
+	if queryParams.Limit != 0 && queryParams.Page != 0 {
+		getAllCoupons = fmt.Sprintf("%s LIMIT %d OFFSET %d", getAllCoupons, queryParams.Limit, (queryParams.Page-1)*queryParams.Limit)
+	}
+	if queryParams.Limit == 0 || queryParams.Page == 0 {
+		getAllCoupons = fmt.Sprintf("%s LIMIT 10 OFFSET 0", getAllCoupons)
+
+	}
+	err = c.DB.Raw(getAllCoupons).Scan(&coupons).Error
+	return coupons, count, err
 }
 
 // DisplayCoupon implements interfaces.CouponRepository.

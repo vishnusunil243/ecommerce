@@ -96,9 +96,9 @@ func (cr *ProductUsecase) DeletProduct(id int) error {
 }
 
 // ListAllProducts implements interfaces.ProductUsecase.
-func (cr *ProductUsecase) ListAllProducts(queryParams helperStruct.QueryParams) ([]response.Product, error) {
-	products, err := cr.productRepo.ListAllProducts(queryParams)
-	return products, err
+func (cr *ProductUsecase) ListAllProducts(queryParams helperStruct.QueryParams) ([]response.Product, int, error) {
+	products, totalCount, err := cr.productRepo.ListAllProducts(queryParams)
+	return products, totalCount, err
 }
 
 // DisplayProduct implements interfaces.ProductUsecase.
@@ -120,9 +120,9 @@ func (cr *ProductUsecase) UpdateProductItem(id int, productItem helperStruct.Pro
 }
 
 // ListAllProductItems implements interfaces.ProductUsecase.
-func (cr *ProductUsecase) ListAllProductItems(queryParams helperStruct.QueryParams) ([]response.ProductItem, error) {
-	productItems, err := cr.productRepo.ListAllProductItems(queryParams)
-	return productItems, err
+func (cr *ProductUsecase) ListAllProductItems(queryParams helperStruct.QueryParams) ([]response.ProductItem, int, error) {
+	productItems, totalCount, err := cr.productRepo.ListAllProductItems(queryParams)
+	return productItems, totalCount, err
 }
 
 // DeleteProductItem implements interfaces.ProductUsecase.

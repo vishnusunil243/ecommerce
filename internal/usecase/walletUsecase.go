@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"main.go/internal/common/helperStruct"
 	"main.go/internal/common/response"
 	"main.go/internal/repository/interfaces"
 	services "main.go/internal/usecase/interface"
@@ -29,7 +30,7 @@ func (w *walletUseCase) DisplayWallet(userId int) (response.Wallet, error) {
 }
 
 // WalletHistory implements interfaces.WalletUseCase.
-func (w *walletUseCase) WalletHistory(userId int) ([]response.WalletHistories, error) {
-	walletHistory, err := w.walletRepo.WalletHistory(userId)
-	return walletHistory, err
+func (w *walletUseCase) WalletHistory(userId int, queryParams helperStruct.QueryParams) ([]response.WalletHistories, int, error) {
+	walletHistory, totalCount, err := w.walletRepo.WalletHistory(userId, queryParams)
+	return walletHistory, totalCount, err
 }

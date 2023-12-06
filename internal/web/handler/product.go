@@ -427,7 +427,7 @@ func (p *ProductHandler) ListAllProducts(c *gin.Context) {
 	if c.Query("sort_desc") != "" {
 		queryParams.SortDesc = true
 	}
-	products, err := p.productUseCase.ListAllProducts(queryParams)
+	products, totalCount, err := p.productUseCase.ListAllProducts(queryParams)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Response{
 			StatusCode: 400,
@@ -437,10 +437,26 @@ func (p *ProductHandler) ListAllProducts(c *gin.Context) {
 		})
 		return
 	}
+
+	if queryParams.Limit == 0 {
+		queryParams.Limit = 10
+	}
+	responseStruct := struct {
+		Products  []response.Product
+		NoOfPages int
+	}{
+		Products:  products,
+		NoOfPages: totalCount / queryParams.Limit,
+	}
+	if responseStruct.NoOfPages == 0 {
+		responseStruct.NoOfPages = 1
+	} else if totalCount%queryParams.Limit != 0 {
+		responseStruct.NoOfPages = responseStruct.NoOfPages + 1
+	}
 	c.JSON(http.StatusOK, response.Response{
 		StatusCode: 200,
 		Message:    "products listed successfully",
-		Data:       products,
+		Data:       responseStruct,
 		Errors:     nil,
 	})
 }
@@ -550,7 +566,17 @@ func (p *ProductHandler) ListAllProductItems(c *gin.Context) {
 	if c.Query("sort_desc") != "" {
 		queryParams.SortDesc = true
 	}
-	productItems, err := p.productUseCase.ListAllProductItems(queryParams)
+	// totalCount, err := p.commonUseCase.GetTotalCount("product_items", queryParams)
+	// if err != nil {
+	// 	c.JSON(http.StatusBadRequest, response.Response{
+	// 		StatusCode: 400,
+	// 		Message:    "error retrieving total count",
+	// 		Data:       nil,
+	// 		Errors:     err.Error(),
+	// 	})
+	// 	return
+	// }
+	productItems, totalCount, err := p.productUseCase.ListAllProductItems(queryParams)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Response{
 			StatusCode: 400,
@@ -560,10 +586,26 @@ func (p *ProductHandler) ListAllProductItems(c *gin.Context) {
 		})
 		return
 	}
+
+	if queryParams.Limit == 0 {
+		queryParams.Limit = 10
+	}
+	responseStruct := struct {
+		ProductItems []response.ProductItem
+		NoOfPages    int
+	}{
+		ProductItems: productItems,
+		NoOfPages:    totalCount / queryParams.Limit,
+	}
+	if responseStruct.NoOfPages == 0 {
+		responseStruct.NoOfPages = 1
+	} else if totalCount%queryParams.Limit != 0 {
+		responseStruct.NoOfPages = responseStruct.NoOfPages + 1
+	}
 	c.JSON(http.StatusOK, response.Response{
 		StatusCode: 200,
 		Message:    "productitems listed successfully",
-		Data:       productItems,
+		Data:       responseStruct,
 		Errors:     nil,
 	})
 }

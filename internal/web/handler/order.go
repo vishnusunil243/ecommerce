@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jung-kurt/gofpdf"
 	"main.go/internal/common/helperStruct"
 	"main.go/internal/common/response"
 	services "main.go/internal/usecase/interface"
@@ -130,7 +132,7 @@ func (o *OrderHandler) ListAllOrders(c *gin.Context) {
 		})
 		return
 	}
-	orders, err := o.orderUsecase.ListAllOrders(userId, queryParams)
+	orders, totalCount, err := o.orderUsecase.ListAllOrders(userId, queryParams)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Response{
 			StatusCode: 400,
@@ -140,10 +142,34 @@ func (o *OrderHandler) ListAllOrders(c *gin.Context) {
 		})
 		return
 	}
+	if len(orders) == 0 {
+		c.JSON(http.StatusOK, response.Response{
+			StatusCode: 200,
+			Message:    "There are no orders yet",
+			Data:       nil,
+			Errors:     nil,
+		})
+	}
+
+	if queryParams.Limit == 0 {
+		queryParams.Limit = 10
+	}
+	responseStruct := struct {
+		Orders    []response.OrderResponse
+		NoOfPages int
+	}{
+		Orders:    orders,
+		NoOfPages: totalCount / queryParams.Limit,
+	}
+	if responseStruct.NoOfPages == 0 {
+		responseStruct.NoOfPages = 1
+	} else if totalCount%queryParams.Limit != 0 {
+		responseStruct.NoOfPages = responseStruct.NoOfPages + 1
+	}
 	c.JSON(http.StatusOK, response.Response{
 		StatusCode: 200,
 		Message:    "orders retrieved successfully",
-		Data:       orders,
+		Data:       responseStruct,
 		Errors:     nil,
 	})
 }
@@ -266,7 +292,7 @@ func (o *OrderHandler) ListAllOrdersForAdmin(c *gin.Context) {
 	if c.Query("sort_desc") != "" {
 		queryParams.SortDesc = true
 	}
-	orders, err := o.orderUsecase.ListAllOrdersForAdmin(queryParams)
+	orders, totalCount, err := o.orderUsecase.ListAllOrdersForAdmin(queryParams)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Response{
 			StatusCode: 400,
@@ -276,10 +302,31 @@ func (o *OrderHandler) ListAllOrdersForAdmin(c *gin.Context) {
 		})
 		return
 	}
+	if len(orders) == 0 {
+		c.JSON(http.StatusOK, response.Response{
+			StatusCode: 200,
+			Message:    "There are no orders yet",
+		})
+	}
+	if queryParams.Limit == 0 {
+		queryParams.Limit = 10
+	}
+	responseStruct := struct {
+		Orders    []response.AdminOrder
+		NoOfPages int
+	}{
+		Orders:    orders,
+		NoOfPages: totalCount / queryParams.Limit,
+	}
+	if responseStruct.NoOfPages == 0 {
+		responseStruct.NoOfPages = 1
+	} else if totalCount%queryParams.Limit != 0 {
+		responseStruct.NoOfPages = responseStruct.NoOfPages + 1
+	}
 	c.JSON(http.StatusOK, response.Response{
 		StatusCode: 200,
 		Message:    "orders listed successfully",
-		Data:       orders,
+		Data:       responseStruct,
 		Errors:     nil,
 	})
 }
@@ -386,6 +433,170 @@ func (o *OrderHandler) ListAllOrderStatuses(c *gin.Context) {
 		StatusCode: 200,
 		Message:    "orderstatuses listed successfully",
 		Data:       orderStatuses,
+		Errors:     nil,
+	})
+}
+func (o *OrderHandler) InvoiceDownload(c *gin.Context) {
+	paramId := c.Param("order_id")
+	orderId, err := strconv.Atoi(paramId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error converting ordeId to integer",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	userId, err := handlerUtil.GetUserIdFromContext(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error retrieving userId",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	order, err := o.orderUsecase.Displayorder(userId, orderId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error retrieving orderInformation",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	if order.OrderResponse.PaymentStatus != "completed" {
+		err = fmt.Errorf("please complete the payment to download the invoice")
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "Cannot download invoice unless you have completed the payment",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	// Generate PDF from JSON data
+	pdf := gofpdf.New("P", "mm", "A4", "")
+	pdf.AddPage()
+
+	pdf.SetFont("Arial", "B", 18)
+	pdf.Cell(40, 10, "Invoice")
+	pdf.Ln(10)
+
+	pdf.SetFont("Arial", "B", 16)
+	pdf.Cell(40, 10, "pc4u")
+	pdf.Ln(8)
+	pdf.Cell(40, 10, "Contact : 8129987917")
+	pdf.Ln(10)
+
+	// Add order information
+	pdf.SetFont("Arial", "B", 16)
+	pdf.Cell(40, 10, "Order Information")
+	pdf.Ln(10)
+
+	pdf.SetFont("Arial", "", 12)
+	pdf.Cell(40, 10, fmt.Sprintf("Order ID: %d", order.OrderResponse.Id))
+	pdf.Ln(8)
+	pdf.Cell(40, 10, fmt.Sprintf("Order Date: %s", order.OrderResponse.OrderDate.Format("2006-01-02 15:04:05")))
+	pdf.Ln(8)
+	pdf.Cell(40, 10, fmt.Sprintf("Payment Type: %s", order.OrderResponse.PaymentType))
+	pdf.Ln(8)
+
+	// Add shipping address
+	pdf.Ln(10)
+	pdf.SetFont("Arial", "B", 14)
+	pdf.Cell(40, 10, "Shipping Address")
+	pdf.Ln(8)
+
+	pdf.SetFont("Arial", "", 12)
+	pdf.Cell(40, 10, fmt.Sprintf("House Number: %s", order.OrderResponse.House_number))
+	pdf.Ln(8)
+	pdf.Cell(40, 10, fmt.Sprintf("Street: %s", order.OrderResponse.Street))
+	pdf.Ln(8)
+	pdf.Cell(40, 10, fmt.Sprintf("City: %s", order.OrderResponse.City))
+	pdf.Ln(8)
+	pdf.Cell(40, 10, fmt.Sprintf("District: %s", order.OrderResponse.District))
+	pdf.Ln(8)
+	pdf.Cell(40, 10, fmt.Sprintf("Landmark: %s", order.OrderResponse.Landmark))
+	pdf.Ln(8)
+	pdf.Cell(40, 10, fmt.Sprintf("Pincode: %d", order.OrderResponse.Pincode))
+	pdf.Ln(10)
+
+	// Add order status and payment details
+	if order.OrderResponse.CouponCode != "" {
+		pdf.Ln(10)
+		pdf.SetFont("Arial", "B", 14)
+		pdf.Cell(40, 10, "Coupon Details")
+		pdf.Ln(8)
+
+		pdf.SetFont("Arial", "", 12)
+		pdf.Cell(40, 10, fmt.Sprintf("Coupon: %s", order.OrderResponse.CouponCode))
+		pdf.Ln(8)
+	}
+
+	// Add product details
+	pdf.Ln(10)
+	pdf.SetFont("Arial", "B", 14)
+	pdf.Cell(40, 10, "Product Details")
+	pdf.Ln(8)
+
+	pdf.SetFont("Arial", "", 12)
+	for _, product := range order.OrderProducts {
+		pdf.Cell(40, 10, fmt.Sprintf("Product: %s", product.ProductName))
+		pdf.Ln(8)
+		pdf.Cell(40, 10, fmt.Sprintf("Price: Rs.%d", product.Price))
+		if product.DiscountPrice != 0 {
+			pdf.Ln(8)
+			pdf.Cell(40, 10, fmt.Sprintf("Discount Price: Rs.%.2f", product.DiscountPrice))
+		}
+		pdf.Ln(8)
+		pdf.Cell(40, 10, fmt.Sprintf("Quantity: %d", product.Quantity))
+		pdf.Ln(10)
+
+	}
+
+	// Add order summary
+
+	pdf.SetFont("Arial", "B", 14)
+	pdf.Cell(40, 10, "Order Summary")
+	pdf.Ln(8)
+
+	pdf.SetFont("Arial", "", 12)
+	pdf.Cell(40, 10, fmt.Sprintf("Subtotal: Rs.%d", order.OrderResponse.SubTotal))
+	if order.OrderResponse.CouponCode != "" {
+		pdf.Ln(8)
+		pdf.Cell(40, 10, fmt.Sprintf("Coupon Amount: Rs.%d", order.OrderResponse.CouponAmount))
+	}
+	if order.OrderResponse.DiscountPrice != 0 {
+		pdf.Ln(8)
+		pdf.Cell(40, 10, fmt.Sprintf("Discount Price: Rs.%d", order.OrderResponse.DiscountPrice))
+	}
+	pdf.Ln(8)
+	pdf.Cell(40, 10, fmt.Sprintf("Order Total: Rs.%d", order.OrderResponse.OrderTotal))
+	pdf.Ln(10)
+	pdf.Ln(10)
+	pdf.SetFont("Arial", "", 10)
+	pdf.Cell(40, 10, "Thank you for shopping with us")
+	pdf.Ln(10)
+
+	// Set headers for file download
+	c.Header("Content-Disposition", "attachment; filename=order.pdf")
+	c.Header("Content-Type", "application/pdf")
+
+	// Output the PDF to the response writer
+	err = pdf.Output(c.Writer)
+	if err != nil {
+		// Handle error appropriately
+		fmt.Println("Error generating PDF:", err)
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "downloaded response successfully",
+		Data:       nil,
 		Errors:     nil,
 	})
 }

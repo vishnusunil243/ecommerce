@@ -393,19 +393,22 @@ func (o *orderDatabase) UserCancelOrder(orderId int, userId int) error {
 }
 
 // ListAllOrders implements interfaces.OrderRepository.
-func (o *orderDatabase) ListAllOrders(userId int, queryParams helperStruct.QueryParams) ([]response.OrderResponse, error) {
+func (o *orderDatabase) ListAllOrders(userId int, queryParams helperStruct.QueryParams) ([]response.OrderResponse, int, error) {
 	var orders []response.OrderResponse
 	findOrders := `SELECT p.type AS payment_type,o.status AS order_status,addresses.*,orders.*,payment_statuses.status AS payment_status
-	,order_items.product_item_id AS product_item_id,products.product_name
 	FROM orders JOIN payment_types p ON  
 	p.id=orders.payment_type_id LEFT JOIN order_statuses o ON orders.order_status_id=o.id 
 	LEFT JOIN addresses ON orders.shipping_address=addresses.id
-	LEFT JOIN order_items ON orders.id=order_items.orders_id
-	LEFT JOIN products ON order_items.product_item_id=products.id 
 	LEFT JOIN payment_statuses ON orders.payment_status_id=payment_statuses.id
 	WHERE user_id=?`
 	if queryParams.Query != "" && queryParams.Filter != "" {
 		findOrders = fmt.Sprintf("%s WHERE LOWER(%s) LIKE '%%%s%%'", findOrders, queryParams.Filter, strings.ToLower(queryParams.Query))
+	}
+	var count int
+	getTotalCount := fmt.Sprintf("SELECT COUNT(*) FROM (%s%d)", findOrders[:len(findOrders)-1], userId)
+	err := o.DB.Raw(getTotalCount).Scan(&count).Error
+	if err != nil {
+		return []response.OrderResponse{}, 0, err
 	}
 	if queryParams.SortBy != "" {
 		if queryParams.SortDesc {
@@ -425,9 +428,9 @@ func (o *orderDatabase) ListAllOrders(userId int, queryParams helperStruct.Query
 	if queryParams.Limit == 0 || queryParams.Page == 0 {
 		findOrders = fmt.Sprintf("%s LIMIT 10 OFFSET 0", findOrders)
 	}
-	err := o.DB.Raw(findOrders, userId).
+	err = o.DB.Raw(findOrders, userId).
 		Scan(&orders).Error
-	return orders, err
+	return orders, count, err
 }
 
 // DisplayOrder implements interfaces.OrderRepository.
@@ -574,7 +577,7 @@ func (o *orderDatabase) UpdateOrderStatus(updateOrder helperStruct.UpdateOrder) 
 }
 
 // ListAllOrdersForAdmin implements interfaces.OrderRepository.
-func (o *orderDatabase) ListAllOrdersForAdmin(queryParams helperStruct.QueryParams) ([]response.AdminOrder, error) {
+func (o *orderDatabase) ListAllOrdersForAdmin(queryParams helperStruct.QueryParams) ([]response.AdminOrder, int, error) {
 	var orders []response.AdminOrder
 	findOrders := `SELECT orders.id AS order_id,orders.payment_type_id,order_statuses.status AS order_status,payment_types.type AS payment_type,payment_statuses.status AS payment_status
 	FROM orders JOIN order_statuses ON orders.order_status_id=order_statuses.id
@@ -583,6 +586,12 @@ func (o *orderDatabase) ListAllOrdersForAdmin(queryParams helperStruct.QueryPara
      `
 	if queryParams.Query != "" && queryParams.Filter != "" {
 		findOrders = fmt.Sprintf("%s WHERE LOWER(%s) LIKE '%%%s%%'", findOrders, queryParams.Filter, strings.ToLower(queryParams.Query))
+	}
+	var count int
+	getTotalCount := fmt.Sprintf("SELECT COUNT(*) FROM (%s)", findOrders)
+	err := o.DB.Raw(getTotalCount).Scan(&count).Error
+	if err != nil {
+		return []response.AdminOrder{}, 0, err
 	}
 	if queryParams.SortBy != "" {
 		if queryParams.SortDesc {
@@ -602,8 +611,8 @@ func (o *orderDatabase) ListAllOrdersForAdmin(queryParams helperStruct.QueryPara
 	if queryParams.Limit == 0 || queryParams.Page == 0 {
 		findOrders = fmt.Sprintf("%s LIMIT 10 OFFSET 0", findOrders)
 	}
-	err := o.DB.Raw(findOrders).Scan(&orders).Error
-	return orders, err
+	err = o.DB.Raw(findOrders).Scan(&orders).Error
+	return orders, count, err
 }
 
 // DisplayOrderForAdmin implements interfaces.OrderRepository.

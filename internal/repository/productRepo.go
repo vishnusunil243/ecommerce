@@ -273,13 +273,19 @@ func (c *ProductDatabase) DeleteProduct(id int) error {
 }
 
 // ListAllProducts implements interfaces.ProductRepository.
-func (c *ProductDatabase) ListAllProducts(queryParams helperStruct.QueryParams) ([]response.Product, error) {
+func (c *ProductDatabase) ListAllProducts(queryParams helperStruct.QueryParams) ([]response.Product, int, error) {
 	var products []response.Product
 	getProductDetails := `SELECT products.product_name AS name,products.description,products.id,brand, categories.category_name
 	FROM products
 	JOIN categories ON products.category_id = categories.id`
 	if queryParams.Query != "" && queryParams.Filter != "" {
 		getProductDetails = fmt.Sprintf("%s WHERE LOWER(%s) LIKE '%%%s%%'", getProductDetails, queryParams.Filter, strings.ToLower(queryParams.Query))
+	}
+	var count int
+	getTotalCount := fmt.Sprintf("SELECT COUNT(*) FROM (%s)", getProductDetails)
+	err := c.DB.Raw(getTotalCount).Scan(&count).Error
+	if err != nil {
+		return []response.Product{}, 0, err
 	}
 	if queryParams.SortBy != "" {
 		if queryParams.SortDesc {
@@ -296,9 +302,9 @@ func (c *ProductDatabase) ListAllProducts(queryParams helperStruct.QueryParams) 
 	if queryParams.Limit == 0 || queryParams.Page == 0 {
 		getProductDetails = fmt.Sprintf("%s LIMIT 10 OFFSET 0", getProductDetails)
 	}
-	err := c.DB.Raw(getProductDetails).Scan(&products).Error
+	err = c.DB.Raw(getProductDetails).Scan(&products).Error
 
-	return products, err
+	return products, count, err
 }
 
 // DisplayProduct implements interfaces.ProductRepository.
@@ -380,7 +386,7 @@ func (c *ProductDatabase) UpdateProductItem(id int, productItem helperStruct.Pro
 }
 
 // ListAllProductItems implements interfaces.ProductRepository.
-func (c *ProductDatabase) ListAllProductItems(queryParams helperStruct.QueryParams) ([]response.ProductItem, error) {
+func (c *ProductDatabase) ListAllProductItems(queryParams helperStruct.QueryParams) ([]response.ProductItem, int, error) {
 	var productItems []response.ProductItem
 	getProductItemDetails := `
     SELECT product_items.*, products.description,products.product_name,products.brand,image_items.image,categories.category_name,
@@ -395,6 +401,12 @@ func (c *ProductDatabase) ListAllProductItems(queryParams helperStruct.QueryPara
 `
 	if queryParams.Query != "" && queryParams.Filter != "" {
 		getProductItemDetails = fmt.Sprintf("%s WHERE LOWER(%s) LIKE '%%%s%%'", getProductItemDetails, queryParams.Filter, strings.ToLower(queryParams.Query))
+	}
+	var count int
+	getTotalCount := fmt.Sprintf("SELECT COUNT(*) FROM (%s)", getProductItemDetails)
+	err := c.DB.Raw(getTotalCount).Scan(&count).Error
+	if err != nil {
+		return []response.ProductItem{}, 0, err
 	}
 	if queryParams.SortBy != "" {
 		if queryParams.SortDesc {
@@ -411,8 +423,12 @@ func (c *ProductDatabase) ListAllProductItems(queryParams helperStruct.QueryPara
 	if queryParams.Limit == 0 || queryParams.Page == 0 {
 		getProductItemDetails = fmt.Sprintf("%s LIMIT 10 OFFSET 0", getProductItemDetails)
 	}
-	err := c.DB.Raw(getProductItemDetails).Scan(&productItems).Error
-	return productItems, err
+	err = c.DB.Raw(getProductItemDetails).Scan(&productItems).Error
+	if err != nil {
+		return []response.ProductItem{}, 0, err
+	}
+
+	return productItems, count, err
 
 }
 
@@ -469,7 +485,6 @@ func (c *ProductDatabase) DisplayProductItem(id int) (response.DisplayProductIte
 	LEFT JOIN brands ON products.brand=brands.brandname
 	LEFT JOIN discounts ON brands.id=discounts.brand_id AND expiry_date>NOW()
 	LEFT JOIN image_items ON product_items.id=image_items.product_item_id AND is_default=true
-
 	WHERE product_items.id=?
 `
 	err := c.DB.Raw(selectQuery, id).Scan(&productItem).Error

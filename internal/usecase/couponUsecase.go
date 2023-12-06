@@ -50,9 +50,9 @@ func (c *CouponUsecase) DisableCoupon(couponId int) error {
 }
 
 // ListAllCoupons implements interfaces.CouponUsecase.
-func (c *CouponUsecase) ListAllCoupons() ([]response.Coupon, error) {
-	coupons, err := c.couponRepo.ListAllCoupons()
-	return coupons, err
+func (c *CouponUsecase) ListAllCoupons(queryParams helperStruct.QueryParams) ([]response.Coupon, int, error) {
+	coupons, totalCount, err := c.couponRepo.ListAllCoupons(queryParams)
+	return coupons, totalCount, err
 }
 
 // DisplayCoupon implements interfaces.CouponUsecase.

@@ -119,6 +119,15 @@ func (cr *CartHandler) ListCart(c *gin.Context) {
 		})
 		return
 	}
+	if len(viewCart.CartItems) == 0 {
+		c.JSON(http.StatusOK, response.Response{
+			StatusCode: 200,
+			Message:    "there are no items in cart",
+			Data:       nil,
+			Errors:     nil,
+		})
+		return
+	}
 	c.JSON(http.StatusOK, response.Response{
 		StatusCode: 200,
 		Message:    "cart displayed successfully",

@@ -2,8 +2,10 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"main.go/internal/common/helperStruct"
 	"main.go/internal/common/response"
 	services "main.go/internal/usecase/interface"
 	"main.go/internal/web/handlerUtil"
@@ -47,6 +49,9 @@ func (w *WalletHandler) DisplayWallet(c *gin.Context) {
 	})
 }
 func (w *WalletHandler) WalletHistory(c *gin.Context) {
+	var queryParams helperStruct.QueryParams
+	queryParams.Page, _ = strconv.Atoi(c.Query("page"))
+	queryParams.Limit, _ = strconv.Atoi(c.Query("limit"))
 	userId, err := handlerUtil.GetUserIdFromContext(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Response{
@@ -57,7 +62,7 @@ func (w *WalletHandler) WalletHistory(c *gin.Context) {
 		})
 		return
 	}
-	walletHistory, err := w.walletUseCase.WalletHistory(userId)
+	walletHistory, totalCount, err := w.walletUseCase.WalletHistory(userId, queryParams)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Response{
 			StatusCode: 400,
@@ -67,10 +72,25 @@ func (w *WalletHandler) WalletHistory(c *gin.Context) {
 		})
 		return
 	}
+	if queryParams.Limit == 0 {
+		queryParams.Limit = 10
+	}
+	responseStruct := struct {
+		WalletHistories []response.WalletHistories
+		NoOfPages       int
+	}{
+		WalletHistories: walletHistory,
+		NoOfPages:       totalCount / queryParams.Limit,
+	}
+	if responseStruct.NoOfPages == 0 {
+		responseStruct.NoOfPages = 1
+	} else if totalCount%queryParams.Limit != 0 {
+		responseStruct.NoOfPages = responseStruct.NoOfPages + 1
+	}
 	c.JSON(http.StatusOK, response.Response{
 		StatusCode: 200,
 		Message:    "wallet history fetched successfully",
-		Data:       walletHistory,
+		Data:       responseStruct,
 		Errors:     nil,
 	})
 }
