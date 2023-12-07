@@ -19,3 +19,10 @@ type UserCoupons struct {
 	OrderId  uint
 	Orders   Orders `gorm:"foreignKey:OrderId"`
 }
+type UserRewardCoupons struct {
+	Id       uint
+	UsersId  uint
+	Users    Users `gorm:"foreignKey:UsersId"`
+	CouponId uint
+	Coupon   Coupon `gorm:"foreignKey:CouponId"`
+}

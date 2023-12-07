@@ -15,11 +15,13 @@ import (
 
 type OrderHandler struct {
 	orderUsecase services.OrderUseCase
+	adminUsecase services.AdminUseCase
 }
 
-func NewOrderHandler(orderUsecase services.OrderUseCase) *OrderHandler {
+func NewOrderHandler(orderUsecase services.OrderUseCase, adminUsecase services.AdminUseCase) *OrderHandler {
 	return &OrderHandler{
 		orderUsecase: orderUsecase,
+		adminUsecase: adminUsecase,
 	}
 }
 func (o *OrderHandler) OrderAll(c *gin.Context) {
@@ -478,6 +480,17 @@ func (o *OrderHandler) InvoiceDownload(c *gin.Context) {
 		})
 		return
 	}
+	user, err := o.adminUsecase.DisplayUser(userId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error loading user details",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+
 	// Generate PDF from JSON data
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.AddPage()
@@ -503,6 +516,19 @@ func (o *OrderHandler) InvoiceDownload(c *gin.Context) {
 	pdf.Cell(40, 10, fmt.Sprintf("Order Date: %s", order.OrderResponse.OrderDate.Format("2006-01-02 15:04:05")))
 	pdf.Ln(8)
 	pdf.Cell(40, 10, fmt.Sprintf("Payment Type: %s", order.OrderResponse.PaymentType))
+	pdf.Ln(8)
+
+	pdf.Ln(10)
+	pdf.SetFont("Arial", "B", 14)
+	pdf.Cell(40, 10, "Buyer Information")
+	pdf.Ln(8)
+
+	pdf.SetFont("Arial", "", 12)
+	pdf.Cell(40, 10, fmt.Sprintf("Name: %s ", user.Name))
+	pdf.Ln(8)
+	pdf.Cell(40, 10, fmt.Sprintf("Email: %s", user.Email))
+	pdf.Ln(8)
+	pdf.Cell(40, 10, fmt.Sprintf("Phone: %s", user.Mobile))
 	pdf.Ln(8)
 
 	// Add shipping address
