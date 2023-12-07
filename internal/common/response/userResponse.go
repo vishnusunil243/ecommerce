@@ -24,14 +24,14 @@ type UserProfile struct {
 	Email      string `json:"email"`
 	Mobile     string `json:"mobile"`
 	ReferralId string `json:"ReferralId,omitempty"`
-	Address    `gorm:"embedded" json:"address"`
+	Address    `gorm:"embedded" json:"address,omitempty"`
 }
 type Address struct {
-	House_number string `json:"house_number" `
-	Street       string `json:"street" `
-	City         string `json:"city" `
-	District     string `json:"district" `
-	Landmark     string `json:"landmark" `
-	Pincode      int    `json:"pincode" `
-	IsDefault    bool   `json:"isdefault"`
+	House_number string `json:"house_number,omitempty" `
+	Street       string `json:"street,omitempty" `
+	City         string `json:"city,omitempty" `
+	District     string `json:"district,omitempty" `
+	Landmark     string `json:"landmark,omitempty" `
+	Pincode      int    `json:"pincode,omitempty" `
+	IsDefault    bool   `json:"isdefault,omitempty"`
 }

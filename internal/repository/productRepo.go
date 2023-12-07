@@ -140,7 +140,7 @@ func (c *ProductDatabase) DeleteBrand(id int) error {
 }
 
 // ListAllBrands implements interfaces.ProductRepository.
-func (c *ProductDatabase) ListAllBrands(queryParams helperStruct.QueryParams) ([]response.Brand, error) {
+func (c *ProductDatabase) ListAllBrands(queryParams helperStruct.QueryParams) ([]response.Brand, int, error) {
 	var brands []response.Brand
 	getBrands := `
     SELECT brands.brandname AS name,brands.id,brands.category_id,brands.description, categories.category_name
@@ -148,14 +148,20 @@ func (c *ProductDatabase) ListAllBrands(queryParams helperStruct.QueryParams) ([
     JOIN categories ON brands.category_id = categories.id
 	
 `
+	var count int
+	getTotalCount := fmt.Sprintf("SELECT COUNT(*) FROM (%s)", getBrands)
+	err := c.DB.Raw(getTotalCount).Scan(&count).Error
+	if err != nil {
+		return []response.Brand{}, 0, err
+	}
 	if queryParams.Limit != 0 && queryParams.Page != 0 {
 		getBrands = fmt.Sprintf("%s LIMIT %d OFFSET %d", getBrands, queryParams.Limit, (queryParams.Page-1)*queryParams.Limit)
 	}
 	if queryParams.Limit == 0 || queryParams.Page == 0 {
 		getBrands = fmt.Sprintf("%s LIMIT 10 OFFSET 0", getBrands)
 	}
-	err := c.DB.Raw(getBrands).Scan(&brands).Error
-	return brands, err
+	err = c.DB.Raw(getBrands).Scan(&brands).Error
+	return brands, count, err
 }
 
 // DisplayBrand implements interfaces.ProductRepository.
@@ -341,6 +347,9 @@ func (c *ProductDatabase) AddProductItem(productItem helperStruct.ProductItem) (
 	if productItem.Battery < 0 {
 		return newProductItem, fmt.Errorf("battery can't have a negative value")
 	}
+	if productItem.Screen_size < 0 {
+		return newProductItem, fmt.Errorf("screen_size can't have a negative value")
+	}
 	var exists bool
 	c.DB.Raw(`SELECT EXISTS(SELECT 1 FROM product_items WHERE product_id=?)`, productItem.Product_id).Scan(&exists)
 	if exists {
@@ -369,6 +378,24 @@ func (c *ProductDatabase) UpdateProductItem(id int, productItem helperStruct.Pro
 	c.DB.Raw(`select exists(select 1 from product_items where id=?)`, id).Scan(&exists)
 	if !exists {
 		return updatedProductItem, fmt.Errorf("no productitem found with given id")
+	}
+	if productItem.Price < 0 {
+		return response.ProductItem{}, fmt.Errorf("price can't have a negative value")
+	}
+	if productItem.Ram < 0 {
+		return response.ProductItem{}, fmt.Errorf("ram can't have a negative value")
+	}
+	if productItem.Qty < 0 {
+		return response.ProductItem{}, fmt.Errorf("the quantity can't have a negative quantity")
+	}
+	if productItem.Storage < 0 {
+		return response.ProductItem{}, fmt.Errorf("storage can't have a negative value")
+	}
+	if productItem.Battery < 0 {
+		return response.ProductItem{}, fmt.Errorf("battery can't have a negative value")
+	}
+	if productItem.Screen_size < 0 {
+		return response.ProductItem{}, fmt.Errorf("screen_size can't have a negative value")
 	}
 	updateQuery := `UPDATE product_items SET id=$1,product_id=$2,sku=$3,qty_in_stock=$4,color=$5,ram=$6,battery=$7,screen_size=$8,storage=$9,price=$10,image=$11,graphic_processor=$12 WHERE id=$13
 	RETURNING id,sku,color,qty_in_stock,battery,ram,screen_size,price,image,graphic_processor,storage`
@@ -524,7 +551,7 @@ func (c *ProductDatabase) DeleteImage(id int) error {
 
 	c.DB.Raw(`SELECT exists (select  1 from image_items WHERE id=?)`, id).Scan(&exists)
 	if !exists {
-		return fmt.Errorf("no image found for the given productitem")
+		return fmt.Errorf("no image found with the given id")
 	}
 
 	err := c.DB.Exec(`DELETE FROM image_items WHERE id=?`, id).Error

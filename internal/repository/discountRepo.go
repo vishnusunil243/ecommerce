@@ -56,11 +56,24 @@ func (d *DiscountDatabase) DeleteDiscount(id int) error {
 }
 
 // ListAllDiscount implements interfaces.DiscountRepository.
-func (d *DiscountDatabase) ListAllDiscount() ([]response.Discount, error) {
+func (d *DiscountDatabase) ListAllDiscount(queryParams helperStruct.QueryParams) ([]response.Discount, int, error) {
 	var discounts []response.Discount
 	listAllDiscount := `SELECT discounts.*,brands.brandname AS brand_name FROM discounts LEFT JOIN brands ON discounts.brand_id=brands.id`
-	err := d.DB.Raw(listAllDiscount).Scan(&discounts).Error
-	return discounts, err
+	var count int
+	getTotalCount := fmt.Sprintf("SELECT COUNT(*) FROM (%s)", listAllDiscount)
+	err := d.DB.Raw(getTotalCount).Scan(&count).Error
+	if err != nil {
+		return []response.Discount{}, 0, err
+	}
+	listAllDiscount = fmt.Sprintf("%s ORDER BY discounts.expiry_date DESC", listAllDiscount)
+	if queryParams.Limit != 0 && queryParams.Page != 0 {
+		listAllDiscount = fmt.Sprintf("%s LIMIT %d OFFSET %d", listAllDiscount, queryParams.Limit, (queryParams.Page-1)*queryParams.Limit)
+	}
+	if queryParams.Limit == 0 || queryParams.Page == 0 {
+		listAllDiscount = fmt.Sprintf("%s LIMIT 10 OFFSET 0", listAllDiscount)
+	}
+	err = d.DB.Raw(listAllDiscount).Scan(&discounts).Error
+	return discounts, count, err
 }
 
 // UpdateDiscount implements interfaces.DiscountRepository.

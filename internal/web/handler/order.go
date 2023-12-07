@@ -151,6 +151,7 @@ func (o *OrderHandler) ListAllOrders(c *gin.Context) {
 			Data:       nil,
 			Errors:     nil,
 		})
+		return
 	}
 
 	if queryParams.Limit == 0 {
@@ -309,6 +310,7 @@ func (o *OrderHandler) ListAllOrdersForAdmin(c *gin.Context) {
 			StatusCode: 200,
 			Message:    "There are no orders yet",
 		})
+		return
 	}
 	if queryParams.Limit == 0 {
 		queryParams.Limit = 10

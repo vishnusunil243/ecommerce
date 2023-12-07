@@ -64,7 +64,7 @@ func (cr *AdminHandler) ListAllUsers(c *gin.Context) {
 	var queryParams helperStruct.QueryParams
 	queryParams.Page, _ = strconv.Atoi(c.Query("page"))
 	queryParams.Limit, _ = strconv.Atoi(c.Query("limit"))
-	users, err := cr.adminUsecase.ListAllUsers(queryParams)
+	users, totalCount, err := cr.adminUsecase.ListAllUsers(queryParams)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Response{
 			StatusCode: 400,
@@ -74,10 +74,25 @@ func (cr *AdminHandler) ListAllUsers(c *gin.Context) {
 		})
 		return
 	}
+	if queryParams.Limit == 0 {
+		queryParams.Limit = 10
+	}
+	responseStruct := struct {
+		Users     []response.UserDetails
+		NoOfPages int
+	}{
+		Users:     users,
+		NoOfPages: totalCount / queryParams.Limit,
+	}
+	if responseStruct.NoOfPages == 0 {
+		responseStruct.NoOfPages = 1
+	} else if totalCount%queryParams.Limit != 0 {
+		responseStruct.NoOfPages = responseStruct.NoOfPages + 1
+	}
 	c.JSON(http.StatusOK, response.Response{
 		StatusCode: 200,
 		Message:    "users listed successfully",
-		Data:       users,
+		Data:       responseStruct,
 		Errors:     nil,
 	})
 }

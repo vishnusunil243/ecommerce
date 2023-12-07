@@ -30,9 +30,9 @@ func (d *DiscouneUseCase) DeleteDiscount(id int) error {
 }
 
 // ListAllDiscount implements interfaces.DiscountUseCase.
-func (d *DiscouneUseCase) ListAllDiscount() ([]response.Discount, error) {
-	discounts, err := d.discountRepo.ListAllDiscount()
-	return discounts, err
+func (d *DiscouneUseCase) ListAllDiscount(queryParams helperStruct.QueryParams) ([]response.Discount, int, error) {
+	discounts, totalCount, err := d.discountRepo.ListAllDiscount(queryParams)
+	return discounts, totalCount, err
 }
 
 // UpdateDiscount implements interfaces.DiscountUseCase.

@@ -54,9 +54,9 @@ func (c *adminUsecase) AdminLogin(admin helperStruct.LoginReq) (string, error) {
 }
 
 // ListAllUsers implements interfaces.AdminUseCase.
-func (cr *adminUsecase) ListAllUsers(queryParams helperStruct.QueryParams) ([]response.UserDetails, error) {
-	users, err := cr.adminRepo.ListAllUsers(queryParams)
-	return users, err
+func (cr *adminUsecase) ListAllUsers(queryParams helperStruct.QueryParams) ([]response.UserDetails, int, error) {
+	users, totalCount, err := cr.adminRepo.ListAllUsers(queryParams)
+	return users, totalCount, err
 }
 
 // DisplayUser implements interfaces.AdminUseCase.

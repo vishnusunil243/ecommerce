@@ -119,7 +119,10 @@ func (d *DiscountHandler) DeleteDiscount(c *gin.Context) {
 	})
 }
 func (d *DiscountHandler) ListAllDiscounts(c *gin.Context) {
-	discounts, err := d.discountUsecase.ListAllDiscount()
+	var queryParams helperStruct.QueryParams
+	queryParams.Limit, _ = strconv.Atoi(c.Query("limit"))
+	queryParams.Page, _ = strconv.Atoi(c.Query("page"))
+	discounts, totalCount, err := d.discountUsecase.ListAllDiscount(queryParams)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Response{
 			StatusCode: 400,
@@ -129,10 +132,25 @@ func (d *DiscountHandler) ListAllDiscounts(c *gin.Context) {
 		})
 		return
 	}
+	if queryParams.Limit == 0 {
+		queryParams.Limit = 10
+	}
+	responseStruct := struct {
+		Discounts []response.Discount
+		NoOfPages int
+	}{
+		Discounts: discounts,
+		NoOfPages: totalCount / queryParams.Limit,
+	}
+	if responseStruct.NoOfPages == 0 {
+		responseStruct.NoOfPages = 1
+	} else if totalCount%queryParams.Limit != 0 {
+		responseStruct.NoOfPages = responseStruct.NoOfPages + 1
+	}
 	c.JSON(http.StatusOK, response.Response{
 		StatusCode: 200,
 		Message:    "discounts displayed successfully",
-		Data:       discounts,
+		Data:       responseStruct,
 		Errors:     nil,
 	})
 }

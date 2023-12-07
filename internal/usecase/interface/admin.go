@@ -7,7 +7,7 @@ import (
 
 type AdminUseCase interface {
 	AdminLogin(admin helperStruct.LoginReq) (string, error)
-	ListAllUsers(queryParams helperStruct.QueryParams) ([]response.UserDetails, error)
+	ListAllUsers(queryParams helperStruct.QueryParams) ([]response.UserDetails, int, error)
 	DisplayUser(id int) (response.UserDetails, error)
 	ReportUser(UsersId int) (response.UserReport, error)
 	GetDashboard(dashboard helperStruct.Dashboard) (response.DashBoard, error)

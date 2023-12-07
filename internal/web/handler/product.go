@@ -273,7 +273,7 @@ func (cr *ProductHandler) ListAllBrands(c *gin.Context) {
 	var queryParams helperStruct.QueryParams
 	queryParams.Page, _ = strconv.Atoi(c.Query("page"))
 	queryParams.Limit, _ = strconv.Atoi(c.Query("limit"))
-	allBrands, err := cr.productUseCase.ListAllBrands(queryParams)
+	allBrands, totalCount, err := cr.productUseCase.ListAllBrands(queryParams)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Response{
 			StatusCode: 400,
@@ -283,10 +283,25 @@ func (cr *ProductHandler) ListAllBrands(c *gin.Context) {
 		})
 		return
 	}
+	if queryParams.Limit == 0 {
+		queryParams.Limit = 10
+	}
+	responseStruct := struct {
+		Brands    []response.Brand
+		NoOfPages int
+	}{
+		Brands:    allBrands,
+		NoOfPages: totalCount / queryParams.Limit,
+	}
+	if responseStruct.NoOfPages == 0 {
+		responseStruct.NoOfPages = 1
+	} else if totalCount%queryParams.Limit != 0 {
+		responseStruct.NoOfPages = responseStruct.NoOfPages + 1
+	}
 	c.JSON(http.StatusOK, response.Response{
 		StatusCode: 200,
 		Message:    "all brands listed successfully",
-		Data:       allBrands,
+		Data:       responseStruct,
 		Errors:     nil,
 	})
 }
@@ -566,16 +581,7 @@ func (p *ProductHandler) ListAllProductItems(c *gin.Context) {
 	if c.Query("sort_desc") != "" {
 		queryParams.SortDesc = true
 	}
-	// totalCount, err := p.commonUseCase.GetTotalCount("product_items", queryParams)
-	// if err != nil {
-	// 	c.JSON(http.StatusBadRequest, response.Response{
-	// 		StatusCode: 400,
-	// 		Message:    "error retrieving total count",
-	// 		Data:       nil,
-	// 		Errors:     err.Error(),
-	// 	})
-	// 	return
-	// }
+
 	productItems, totalCount, err := p.productUseCase.ListAllProductItems(queryParams)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, response.Response{

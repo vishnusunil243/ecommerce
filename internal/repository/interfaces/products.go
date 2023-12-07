@@ -14,7 +14,7 @@ type ProductRepository interface {
 	CreateBrand(brand helperStruct.Brand) (response.Brand, error)
 	UpdateBrand(brand helperStruct.Brand, id int) (response.Brand, error)
 	DeleteBrand(id int) error
-	ListAllBrands(queryParams helperStruct.QueryParams) ([]response.Brand, error)
+	ListAllBrands(queryParams helperStruct.QueryParams) ([]response.Brand, int, error)
 	DisplayBrand(id int) (response.Brand, error)
 	AddProduct(product helperStruct.Product) (response.Product, error)
 	UpdateProduct(product helperStruct.Product, id int) (response.Product, error)

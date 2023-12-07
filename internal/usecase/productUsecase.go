@@ -66,9 +66,9 @@ func (cr *ProductUsecase) DeleteBrand(id int) error {
 }
 
 // ListAllBrands implements interfaces.ProductUsecase.
-func (cr *ProductUsecase) ListAllBrands(queryParams helperStruct.QueryParams) ([]response.Brand, error) {
-	allBrands, err := cr.productRepo.ListAllBrands(queryParams)
-	return allBrands, err
+func (cr *ProductUsecase) ListAllBrands(queryParams helperStruct.QueryParams) ([]response.Brand, int, error) {
+	allBrands, totalCount, err := cr.productRepo.ListAllBrands(queryParams)
+	return allBrands, totalCount, err
 }
 
 // DisplayBrand implements interfaces.ProductUsecase.

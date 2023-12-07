@@ -139,7 +139,7 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 				productItem.DELETE("/delete/:productItem_id", productHandler.DeleteProductItem)
 				productItem.GET("/", productHandler.ListAllProductItems)
 				productItem.GET("/:productItem_id", productHandler.DisplayProductItem)
-				productItem.DELETE("/:image_id/deleteimage", productHandler.DeleteImage)
+				productItem.DELETE("/:image_id", productHandler.DeleteImage)
 			}
 			order := admin.Group("/orders")
 			{

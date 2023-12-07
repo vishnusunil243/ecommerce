@@ -36,6 +36,17 @@ func (c *cartDatabase) AddToCart(productId int, userId int) error {
 		tx.Rollback()
 		return err
 	}
+	var quantity int
+	quantityCheck := `SELECT qty_in_stock FROM product_items WHERE id=?`
+	err = tx.Raw(quantityCheck, productId).Scan(&quantity).Error
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	if quantity <= 0 {
+		tx.Rollback()
+		return fmt.Errorf("this product is out of stock")
+	}
 	var cartItemId int
 	cartItemCheck := `SELECT id FROM cart_items WHERE carts_id=$1 AND product_item_id=$2 LIMIT 1`
 	err = tx.Raw(cartItemCheck, cartId, productId).Scan(&cartItemId).Error

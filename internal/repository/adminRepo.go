@@ -30,17 +30,23 @@ func (c *adminDatabase) AdminLogin(email string) (domain.Admins, error) {
 }
 
 // ListAllUsers implements interfaces.AdminRepository.
-func (c *adminDatabase) ListAllUsers(queryParams helperStruct.QueryParams) ([]response.UserDetails, error) {
+func (c *adminDatabase) ListAllUsers(queryParams helperStruct.QueryParams) ([]response.UserDetails, int, error) {
 	var users []response.UserDetails
 	getUsers := `SELECT * FROM users`
+	var count int
+	getTotalCount := fmt.Sprintf("SELECT COUNT(*) FROM (%s)", getUsers)
+	err := c.DB.Raw(getTotalCount).Scan(&count).Error
+	if err != nil {
+		return []response.UserDetails{}, 0, err
+	}
 	if queryParams.Limit != 0 && queryParams.Page != 0 {
 		getUsers = fmt.Sprintf("%s LIMIT %d OFFSET %d", getUsers, queryParams.Limit, (queryParams.Page-1)*queryParams.Limit)
 	}
 	if queryParams.Limit == 0 || queryParams.Page == 0 {
 		getUsers = fmt.Sprintf("%s LIMIT 10 OFFSET 0", getUsers)
 	}
-	err := c.DB.Raw(getUsers).Scan(&users).Error
-	return users, err
+	err = c.DB.Raw(getUsers).Scan(&users).Error
+	return users, count, err
 }
 
 // DispalyUser implements interfaces.AdminRepository.
@@ -122,7 +128,7 @@ func (c *adminDatabase) ViewSalesReport(filter helperStruct.Dashboard) ([]respon
 						 JOIN payment_types pt ON pt.id=o.payment_type_id
 						WHERE o.order_status_id=4`
 	if filter.Year != 0 {
-		getSalesReport = fmt.Sprintf(`%s WHERE EXTRACT(YEAR FROM o.order_date)=%d`, getSalesReport, filter.Year)
+		getSalesReport = fmt.Sprintf(`%s AND EXTRACT(YEAR FROM o.order_date)=%d`, getSalesReport, filter.Year)
 		if filter.Month != 0 {
 			getSalesReport = fmt.Sprintf(`%s AND EXTRACT(MONTH FROM o.order_date)=%d `, getSalesReport, filter.Month)
 		}
@@ -130,7 +136,9 @@ func (c *adminDatabase) ViewSalesReport(filter helperStruct.Dashboard) ([]respon
 			getSalesReport = fmt.Sprintf(`%s AND EXTRACT(DAY FROM o.order_date)=%d`, getSalesReport, filter.Day)
 		}
 	} else if filter.StartDate != "" && filter.EndDate != "" {
-		getSalesReport = fmt.Sprintf(`%s WHERE o.order_date BETWEEN '%s' AND '%s'`, getSalesReport, filter.StartDate, filter.EndDate)
+		getSalesReport = fmt.Sprintf(`%s AND o.order_date BETWEEN '%s' AND '%s'`, getSalesReport, filter.StartDate, filter.EndDate)
+	} else {
+		getSalesReport = fmt.Sprintf("%s ORDER BY o.order_date DESC", getSalesReport)
 	}
 	err := c.DB.Raw(getSalesReport).Scan(&salesReports).Error
 	return salesReports, err
