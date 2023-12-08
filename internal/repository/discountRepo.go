@@ -26,6 +26,11 @@ func (d *DiscountDatabase) AddDiscount(discount helperStruct.Discount) (response
 	if exists {
 		return response.Discount{}, fmt.Errorf("this brand already has a discount please add discount for a different brand")
 	}
+	d.DB.Raw(`SELECT EXISTS (select 1 from brandss where id=?)`, discount.BrandId).Scan(&exists)
+	if !exists {
+		return response.Discount{}, fmt.Errorf("no brand found with the given id")
+	}
+
 	var maxId int
 	err := d.DB.Raw(`SELECT COALESCE(MAX(id),0) FROM discounts`).Scan(&maxId).Error
 	if err != nil {
