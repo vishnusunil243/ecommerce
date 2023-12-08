@@ -88,6 +88,10 @@ func (d *DiscountDatabase) UpdateDiscount(discount helperStruct.Discount, discou
 	if !exists {
 		return response.Discount{}, fmt.Errorf("no discount found with the given id")
 	}
+	d.DB.Raw(`SELECT EXISTS (select 1 from discounts where brand_id=?)`, discount.BrandId).Scan(&exists)
+	if exists {
+		return response.Discount{}, fmt.Errorf("this brand already has a discount please add discount for a different brand")
+	}
 	var updatedDiscount response.Discount
 	updateDiscount := `UPDATE discounts SET expiry_date=$1,discount_percent=$2,brand_id=$3 WHERE id=$4`
 	err := d.DB.Exec(updateDiscount, discount.ExpiryDate, discount.DiscountPercent, discount.BrandId, discountId).Error
