@@ -118,6 +118,15 @@ func (w *WishlistHandler) ListAllWishlist(c *gin.Context) {
 		})
 		return
 	}
+	if len(wishlists) == 0 {
+		c.JSON(http.StatusOK, response.Response{
+			StatusCode: 200,
+			Message:    "there are no items in wishlist",
+			Data:       nil,
+			Errors:     nil,
+		})
+		return
+	}
 	c.JSON(http.StatusOK, response.Response{
 		StatusCode: 200,
 		Message:    "wishlist fetched successfully",
