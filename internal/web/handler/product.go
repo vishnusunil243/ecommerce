@@ -675,62 +675,6 @@ func (p *ProductHandler) DisplayProductItem(c *gin.Context) {
 	})
 }
 
-// func (p *ProductHandler) UploadImage(c *gin.Context) {
-// 	paramId := c.Param("productItem_id")
-// 	id, err := strconv.Atoi(paramId)
-// 	if err != nil {
-// 		c.JSON(http.StatusBadRequest, response.Response{
-// 			StatusCode: 400,
-// 			Message:    "error parsing params",
-// 			Data:       nil,
-// 			Errors:     err.Error(),
-// 		})
-// 		return
-// 	}
-
-// 	fileHeade, err := c.FormFile("image")
-// 	if err != nil {
-// 		c.JSON(http.StatusBadRequest, response.Response{
-// 			StatusCode: 400,
-// 			Message:    "error getting image",
-// 			Data:       nil,
-// 			Errors:     err.Error(),
-// 		})
-// 		return
-// 	}
-// 	file, err := fileHeade.Open()
-// 	if err != nil {
-// 		c.JSON(http.StatusInternalServerError, response.Response{
-// 			StatusCode: 500,
-// 			Message:    "error opening file",
-// 			Data:       nil,
-// 			Errors:     err.Error(),
-// 		})
-// 		return
-// 	}
-
-// 	imageHelper := helperStruct.ImageHelper{
-// 		ImageFile:     file,
-// 		ProductItemId: uint(id),
-// 		ImageType:     fileHeade.Header.Get("Content-Type"),
-// 	}
-// 	newImage, err := p.productUseCase.ImageUpload(imageHelper)
-// 	if err != nil {
-// 		c.JSON(http.StatusBadRequest, response.Response{
-// 			StatusCode: 400,
-// 			Message:    "error uploading image",
-// 			Data:       nil,
-// 			Errors:     err.Error(),
-// 		})
-// 		return
-// 	}
-// 	c.JSON(http.StatusOK, response.Response{
-// 		StatusCode: 200,
-// 		Message:    "image uploaded successfully",
-// 		Data:       newImage,
-// 		Errors:     nil,
-// 	})
-// }
 // -------------------------- Upload-Image --------------------------//
 
 func (cr *ProductHandler) UploadImage(c *gin.Context) {
