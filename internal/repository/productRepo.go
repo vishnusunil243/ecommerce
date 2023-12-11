@@ -528,12 +528,7 @@ func (c *ProductDatabase) DisplayProductItem(id int) (response.DisplayProductIte
 	return responseProduct, err
 }
 
-// // UploadImage implements interfaces.ProductRepository.
-// func (c *ProductDatabase) UploadImage(Image helperStruct.ImageHelper) (response.ImageResponse, error) {
-// 	var image response.ImageResponse
-// 	err := c.DB.Raw(`INSERT INTO images(product_item_id,image) VALUES ($1,$2) RETURNING image,product_item_id AS id`, Image.ProductItemId, Image.ImageData).Scan(&image).Error
-// 	return image, err
-// }
+
 // -------------------------- Uploaded-Model --------------------------//
 
 func (c *ProductDatabase) UploadImage(filepath string, productId int) (response.Image, error) {
