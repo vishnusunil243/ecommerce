@@ -6,6 +6,7 @@ import (
 	"github.com/razorpay/razorpay-go"
 	"main.go/internal/common/helperStruct"
 	"main.go/internal/common/response"
+	"main.go/internal/domain"
 	"main.go/internal/infrastructure/config"
 	"main.go/internal/repository/interfaces"
 	services "main.go/internal/usecase/interface"
@@ -87,4 +88,40 @@ func (c *PaymentUseCase) UpdatePaymentDetails(paymentVerifier helperStruct.Payme
 		return fmt.Errorf("failed to update payment details")
 	}
 	return nil
+}
+
+// AddPaymentStatus implements interfaces.PaymentUseCase.
+func (p *PaymentUseCase) AddPaymentStatus(paymentStatus helperStruct.PaymentStatus) (domain.PaymentStatus, error) {
+	newPaymentStatus, err := p.paymentRepo.AddPaymentStatus(paymentStatus)
+	return newPaymentStatus, err
+}
+
+// AddPaymentType implements interfaces.PaymentUseCase.
+func (p *PaymentUseCase) AddPaymentType(paymentType helperStruct.PaymentType) (domain.PaymentType, error) {
+	newPaymentType, err := p.paymentRepo.AddPaymentType(paymentType)
+	return newPaymentType, err
+}
+
+// ListAllPaymentStatuses implements interfaces.PaymentUseCase.
+func (p *PaymentUseCase) ListAllPaymentStatuses() ([]domain.PaymentStatus, error) {
+	paymentStatuses, err := p.paymentRepo.ListAllPaymentStatuses()
+	return paymentStatuses, err
+}
+
+// ListAllPaymentTypes implements interfaces.PaymentUseCase.
+func (p *PaymentUseCase) ListAllPaymentTypes() ([]domain.PaymentType, error) {
+	paymentTypes, err := p.paymentRepo.ListAllPaymentTypes()
+	return paymentTypes, err
+}
+
+// UpdatePayemntStatus implements interfaces.PaymentUseCase.
+func (p *PaymentUseCase) UpdatePayemntStatus(paymentStatus helperStruct.PaymentStatus, paymentStatusId int) error {
+	err := p.paymentRepo.UpdatePaymentStatus(paymentStatus, paymentStatusId)
+	return err
+}
+
+// UpdatePaymentType implements interfaces.PaymentUseCase.
+func (p *PaymentUseCase) UpdatePaymentType(paymentType helperStruct.PaymentType, paymentTypeId int) error {
+	err := p.paymentRepo.UpdatePaymentType(paymentType, paymentTypeId)
+	return err
 }
