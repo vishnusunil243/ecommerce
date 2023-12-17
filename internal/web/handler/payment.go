@@ -133,3 +133,195 @@ func (cr *PaymentHandler) PaymentSuccess(c *gin.Context) {
 		Errors:     nil,
 	})
 }
+func (cr *PaymentHandler) AddPaymentType(c *gin.Context) {
+	var paymentType helperStruct.PaymentType
+	err := c.BindJSON(&paymentType)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error binding json",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	newPaymentType, err := cr.paymentUseCase.AddPaymentType(paymentType)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error adding payment type",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "payment type added successfully",
+		Data:       newPaymentType,
+		Errors:     nil,
+	})
+}
+func (p *PaymentHandler) UpdatePaymentType(c *gin.Context) {
+	var paymentType helperStruct.PaymentType
+	err := c.BindJSON(&paymentType)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error binding json",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	paramId := c.Param("payment_type_id")
+	paymentTypeId, err := strconv.Atoi(paramId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error parsing payment type id",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	err = p.paymentUseCase.UpdatePaymentType(paymentType, paymentTypeId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error udpating payment type",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "payment type udpated successfully",
+		Data:       nil,
+		Errors:     nil,
+	})
+}
+func (p *PaymentHandler) ListAllPaymentTypes(c *gin.Context) {
+	paymentTypes, err := p.paymentUseCase.ListAllPaymentTypes()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error listing all payment types",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	if len(paymentTypes) == 0 {
+		c.JSON(http.StatusOK, response.Response{
+			StatusCode: 200,
+			Message:    "there are no payment types",
+			Data:       nil,
+			Errors:     nil,
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "payment types fetched successfully",
+		Data:       paymentTypes,
+		Errors:     nil,
+	})
+}
+func (p *PaymentHandler) AddPaymentStatus(c *gin.Context) {
+	var paymentStatus helperStruct.PaymentStatus
+	err := c.BindJSON(&paymentStatus)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error binding json",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	newPaymentStatus, err := p.paymentUseCase.AddPaymentStatus(paymentStatus)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error adding payment status",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "payment status added successfully",
+		Data:       newPaymentStatus,
+		Errors:     nil,
+	})
+}
+func (p *PaymentHandler) UpdatePaymentStatus(c *gin.Context) {
+	var paymentStatus helperStruct.PaymentStatus
+	err := c.BindJSON(&paymentStatus)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error binding json",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	paramId := c.Param("payment_status_id")
+	paymentStatusId, err := strconv.Atoi(paramId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error parsing payment status id",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	err = p.paymentUseCase.UpdatePayemntStatus(paymentStatus, paymentStatusId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error updating payment status",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "payment status updated successfully",
+		Data:       nil,
+		Errors:     nil,
+	})
+}
+func (p *PaymentHandler) ListAllPaymentStatuses(c *gin.Context) {
+	paymentStatuses, err := p.paymentUseCase.ListAllPaymentStatuses()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, response.Response{
+			StatusCode: 400,
+			Message:    "error listing all payment status",
+			Data:       nil,
+			Errors:     err.Error(),
+		})
+		return
+	}
+	if len(paymentStatuses) == 0 {
+		c.JSON(http.StatusOK, response.Response{
+			StatusCode: 200,
+			Message:    "there are no payment status",
+			Data:       nil,
+			Errors:     nil,
+		})
+		return
+	}
+	c.JSON(http.StatusOK, response.Response{
+		StatusCode: 200,
+		Message:    "payment statuses fetched successfully",
+		Data:       paymentStatuses,
+		Errors:     nil,
+	})
+}

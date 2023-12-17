@@ -202,6 +202,18 @@ func NewServerHTTP(userHandler *handler.UserHandler, adminHandler *handler.Admin
 				user.PATCH("/:user_id/block", superadminHandler.BlockUser)
 				user.PATCH("/:user_id/unblock", superadminHandler.UnBlockUserManually)
 			}
+			paymentType := superAdmin.Group("/paymenttypes")
+			{
+				paymentType.POST("/add", paymentHandler.AddPaymentType)
+				paymentType.GET("/", paymentHandler.ListAllPaymentTypes)
+				paymentType.PATCH("/:payment_type_id", paymentHandler.UpdatePaymentType)
+			}
+			paymentStatus := superAdmin.Group("/paymentstatuses")
+			{
+				paymentStatus.POST("/add", paymentHandler.AddPaymentStatus)
+				paymentStatus.GET("/", paymentHandler.ListAllPaymentStatuses)
+				paymentStatus.PATCH("/:payment_status_id", paymentHandler.UpdatePaymentStatus)
+			}
 		}
 	}
 
