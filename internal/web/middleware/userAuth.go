@@ -26,6 +26,10 @@ func UserAuth(c *gin.Context) {
 	c.Set("userId", userId)
 	c.Next()
 }
+func TestUserAuth(c *gin.Context) {
+	c.Set("userId", 1)
+	c.Next()
+}
 func UserIsBlocked(c *gin.Context) {
 	var cr *gorm.DB
 	id, err := handlerUtil.GetUserIdFromContext(c)
