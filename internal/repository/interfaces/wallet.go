@@ -5,6 +5,7 @@ import (
 	"main.go/internal/common/response"
 )
 
+// walletrepo
 type WalletRepository interface {
 	CreateWallet(userId int) error
 	DisplayWallet(userId int) (response.Wallet, error)
